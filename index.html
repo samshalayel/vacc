@@ -433,6 +433,20 @@
             max-height: calc(100vh - 20px);
             overflow-y: auto;
             font-size: 0.85em;
+            transition: box-shadow 0.2s;
+        }
+
+        .summary-card.dragging {
+            box-shadow: 0 20px 40px -5px rgb(0 0 0 / 0.3);
+            opacity: 0.95;
+        }
+
+        .summary-card.collapsed {
+            overflow: visible;
+        }
+
+        .summary-card.collapsed .summary-body {
+            display: none;
         }
 
         .summary-header {
@@ -442,6 +456,44 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            cursor: move;
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+            user-select: none;
+        }
+
+        .summary-card.collapsed .summary-header {
+            border-radius: var(--radius-lg);
+        }
+
+        .summary-header-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .summary-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        .summary-toggle-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            cursor: pointer;
+            border-radius: 4px;
+            padding: 3px 7px;
+            font-size: 0.75rem;
+            line-height: 1.4;
+            transition: background 0.2s;
+        }
+
+        .summary-toggle-btn:hover {
+            background: rgba(255,255,255,0.35);
         }
 
         .summary-header h3 {
@@ -635,9 +687,16 @@
             <div id="map">
                 <!-- Summary Card -->
                 <div class="summary-card" id="summary-card">
-                    <div class="summary-header">
-                        <h3><i class="fas fa-chart-bar"></i> Summary Statistics</h3>
-                        <span class="facilities-count" id="facilities-count">0 Facilities</span>
+                    <div class="summary-header" id="summary-header">
+                        <div class="summary-header-left">
+                            <h3><i class="fas fa-chart-bar"></i> Summary Statistics</h3>
+                        </div>
+                        <div class="summary-header-actions">
+                            <span class="facilities-count" id="facilities-count">0 Facilities</span>
+                            <button class="summary-toggle-btn" id="summary-toggle-btn" title="Hide/Show">
+                                <i class="fas fa-chevron-up" id="summary-toggle-icon"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="summary-body">
                         <div class="summary-section">
@@ -1319,6 +1378,70 @@
 
         // Initialize summary card with all data on page load
         updateSummaryCard(json_vaccination_data.features);
+
+        // === Summary Card: Toggle Hide/Show ===
+        document.getElementById('summary-toggle-btn').addEventListener('click', function(e) {
+            e.stopPropagation();
+            var card = document.getElementById('summary-card');
+            var icon = document.getElementById('summary-toggle-icon');
+            card.classList.toggle('collapsed');
+            if (card.classList.contains('collapsed')) {
+                icon.className = 'fas fa-chevron-down';
+            } else {
+                icon.className = 'fas fa-chevron-up';
+            }
+        });
+
+        // === Summary Card: Draggable ===
+        (function() {
+            var card = document.getElementById('summary-card');
+            var header = document.getElementById('summary-header');
+            var mapContainer = document.getElementById('map');
+            var isDragging = false;
+            var startX, startY, startLeft, startTop;
+
+            header.addEventListener('mousedown', function(e) {
+                if (e.target.closest('button')) return;
+                isDragging = true;
+                card.classList.add('dragging');
+
+                var mapRect = mapContainer.getBoundingClientRect();
+                var cardRect = card.getBoundingClientRect();
+
+                // Switch from right-based to left-based positioning
+                card.style.right = 'auto';
+                startLeft = cardRect.left - mapRect.left;
+                startTop = cardRect.top - mapRect.top;
+                card.style.left = startLeft + 'px';
+                card.style.top = startTop + 'px';
+
+                startX = e.clientX;
+                startY = e.clientY;
+
+                map.dragging.disable();
+                document.body.style.userSelect = 'none';
+                e.preventDefault();
+            });
+
+            document.addEventListener('mousemove', function(e) {
+                if (!isDragging) return;
+                var dx = e.clientX - startX;
+                var dy = e.clientY - startY;
+                var mapRect = mapContainer.getBoundingClientRect();
+                var newLeft = Math.max(0, Math.min(startLeft + dx, mapRect.width - card.offsetWidth));
+                var newTop = Math.max(0, Math.min(startTop + dy, mapRect.height - card.offsetHeight));
+                card.style.left = newLeft + 'px';
+                card.style.top = newTop + 'px';
+            });
+
+            document.addEventListener('mouseup', function() {
+                if (!isDragging) return;
+                isDragging = false;
+                card.classList.remove('dragging');
+                map.dragging.enable();
+                document.body.style.userSelect = '';
+            });
+        })();
         </script>
     </body>
 </html>
