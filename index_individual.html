@@ -11038,25 +11038,85 @@ var FormatOptions = [
         }
 
         // ── Catch-Up III Round Health Facilities Layer ──────────────────────────
+        // Build lookup: facility name → r3 stats
+        var r3StatsLookup = {};
+        json_vaccination_r3_data.features.forEach(function(f) {
+            r3StatsLookup[f.properties['Health Facility']] = f.properties;
+        });
+
+        function getR3Stats(facilityName) {
+            // Try exact match first, then partial match
+            if (r3StatsLookup[facilityName]) return r3StatsLookup[facilityName];
+            var keys = Object.keys(r3StatsLookup);
+            for (var i = 0; i < keys.length; i++) {
+                if (keys[i].indexOf(facilityName) >= 0 || facilityName.indexOf(keys[i]) >= 0) {
+                    return r3StatsLookup[keys[i]];
+                }
+            }
+            return null;
+        }
+
         function pop_catchup_facilities(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') { layer.closePopup(); }
+                },
+                mouseover: highlightFeature,
+            });
             var p = feature.properties;
-            var popupContent =
-                '<div style="font-family:\'Inter\',sans-serif;min-width:220px;">' +
-                '<div style="background:#d97706;color:#fff;padding:10px 14px;border-radius:8px 8px 0 0;margin:-1px -1px 0;">' +
-                '<b style="font-size:0.95rem;">🏥 ' + (p.name_en || p.name_ar) + '</b>' +
+            var s = getR3Stats(p.name_en);
+
+            var popupContent = '<div class="popup-header">' +
+                '<h3>' + (p.name_en || p.name_ar || '') + '</h3>' +
+                '<div class="governorate"><i class="fas fa-map-marker-alt"></i> ' + (p.Governorate || '') + ' | ' + (p.Organization || '') + '</div>' +
                 '</div>' +
-                '<div style="padding:10px 14px;border:1px solid #fde68a;border-top:none;border-radius:0 0 8px 8px;">' +
-                '<p style="margin:4px 0;direction:rtl;font-size:0.85rem;color:#92400e;">' + (p.name_ar || '') + '</p>' +
-                '<hr style="border:none;border-top:1px solid #fde68a;margin:6px 0;">' +
-                '<table style="width:100%;font-size:0.82rem;border-collapse:collapse;">' +
-                '<tr><td style="color:#78716c;padding:2px 4px;">Governorate</td><td style="font-weight:600;padding:2px 4px;">' + (p.Governorate || '') + '</td></tr>' +
-                '<tr><td style="color:#78716c;padding:2px 4px;">Organization</td><td style="font-weight:600;padding:2px 4px;">' + (p.Organization || '') + '</td></tr>' +
-                '<tr><td style="color:#78716c;padding:2px 4px;">Teams Org</td><td style="font-weight:600;padding:2px 4px;">' + (p.teams_org || '') + '</td></tr>' +
-                '<tr><td style="color:#78716c;padding:2px 4px;">Address</td><td style="font-weight:600;padding:2px 4px;">' + (p.address || '') + '</td></tr>' +
-                '</table>' +
-                '<div style="margin-top:6px;background:#fef3c7;border-radius:4px;padding:4px 8px;font-size:0.75rem;color:#92400e;text-align:center;">Catch-Up Campaign – Round III</div>' +
+                '<div class="popup-body">';
+
+            if (s) {
+                popupContent +=
+                '<div class="popup-section">' +
+                '<div class="popup-section-title">Children Summary (Round 3)</div>' +
+                '<div class="popup-grid">' +
+                '<div class="popup-stat"><div class="value">' + (s['TotalChildren'] || 0) + '</div><div class="label">Total</div></div>' +
+                '<div class="popup-stat success"><div class="value">' + (s['OnSchedule'] || 0) + '</div><div class="label">On Schedule</div></div>' +
+                '<div class="popup-stat warning"><div class="value">' + (s['Defaulter'] || 0) + '</div><div class="label">Defaulter</div></div>' +
+                '<div class="popup-stat danger"><div class="value">' + (s['ZeroDose'] || 0) + '</div><div class="label">Zero Dose</div></div>' +
+                '</div></div>' +
+
+                '<div class="popup-section">' +
+                '<div class="popup-section-title">Age Groups</div>' +
+                '<div class="popup-grid three-cols">' +
+                '<div class="popup-stat"><div class="value">' + (s['Age 0-12'] || 0) + '</div><div class="label">0-12 M</div></div>' +
+                '<div class="popup-stat"><div class="value">' + (s['Age 12-24'] || 0) + '</div><div class="label">12-24 M</div></div>' +
+                '<div class="popup-stat"><div class="value">' + (s['Age 24+'] || 0) + '</div><div class="label">24+ M</div></div>' +
+                '</div></div>' +
+
+                '<div class="popup-section">' +
+                '<div class="popup-section-title">Vaccines Given</div>' +
+                '<div class="vaccine-grid">' +
+                '<div class="vaccine-item"><div class="count">' + (s['BCG'] || 0) + '</div>BCG</div>' +
+                '<div class="vaccine-item"><div class="count">' + (s['HepB'] || 0) + '</div>HepB</div>' +
+                '<div class="vaccine-item"><div class="count">' + (s['IPV1'] || 0) + '</div>IPV1</div>' +
+                '<div class="vaccine-item"><div class="count">' + (s['IPV2'] || 0) + '</div>IPV2</div>' +
+                '<div class="vaccine-item"><div class="count">' + (s['Penta1'] || 0) + '</div>Penta1</div>' +
+                '<div class="vaccine-item"><div class="count">' + (s['Penta2'] || 0) + '</div>Penta2</div>' +
+                '<div class="vaccine-item"><div class="count">' + (s['Penta3'] || 0) + '</div>Penta3</div>' +
+                '<div class="vaccine-item"><div class="count">' + (s['MMR1'] || 0) + '</div>MMR1</div>' +
                 '</div></div>';
-            layer.bindPopup(popupContent, { maxHeight: 400, maxWidth: 300 });
+            } else {
+                popupContent +=
+                '<div class="popup-section">' +
+                '<div style="text-align:center;color:#78716c;font-size:0.8rem;padding:8px;">No vaccination data recorded yet</div>' +
+                '</div>';
+            }
+
+            popupContent += '</div>';
+            layer.bindPopup(popupContent, { maxHeight: 450, maxWidth: 320 });
         }
 
         function style_catchup_facilities(feature) {
@@ -11068,17 +11128,30 @@ var FormatOptions = [
                 'Rafah': '#d97706'
             };
             var fillColor = colors[feature.properties['Governorate']] || '#6b7280';
+
+            // Radius based on TotalChildren from r3 data
+            var s = getR3Stats(feature.properties.name_en);
+            var total = s ? (s['TotalChildren'] || 0) : 0;
+            var radius;
+            if (total === 0)       radius = 5;
+            else if (total <= 5)   radius = 6;
+            else if (total <= 10)  radius = 8;
+            else if (total <= 20)  radius = 10;
+            else if (total <= 40)  radius = 14;
+            else if (total <= 80)  radius = 18;
+            else                   radius = 22;
+
             return {
                 pane: 'pane_catchup_facilities',
-                radius: 8,
+                radius: radius,
                 opacity: 1,
-                color: '#ffffff',
+                color: '#2c3e50',
                 dashArray: '',
                 lineCap: 'round',
                 lineJoin: 'round',
                 weight: 2,
                 fill: true,
-                fillOpacity: 0.9,
+                fillOpacity: 0.85,
                 fillColor: fillColor,
                 interactive: true,
             };
