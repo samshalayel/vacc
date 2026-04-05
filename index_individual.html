@@ -11379,25 +11379,21 @@ var FormatOptions = [
             var headerSub = document.getElementById('header-round-sub');
             if (headerSub) headerSub.textContent = round === 'Both' ? 'Rounds 2 & 3' : round + ' | ' + roundDates[round];
 
-            // Layer visibility
+            // Add both layers to map so filterFunc can repopulate them
+            if (!map.hasLayer(layer_vaccination_data)) map.addLayer(layer_vaccination_data);
+            if (!map.hasLayer(layer_catchup_facilities)) map.addLayer(layer_catchup_facilities);
+
+            // filterFunc applies currentRound filter and repopulates both layers
+            filterFunc();
+
+            // Hide layers not belonging to selected round
             if (round === 'Round 2') {
-                if (!map.hasLayer(layer_vaccination_data)) map.addLayer(layer_vaccination_data);
                 if (map.hasLayer(layer_catchup_facilities)) map.removeLayer(layer_catchup_facilities);
             } else if (round === 'Round 3') {
                 if (map.hasLayer(layer_vaccination_data)) map.removeLayer(layer_vaccination_data);
-                if (!map.hasLayer(layer_catchup_facilities)) map.addLayer(layer_catchup_facilities);
-            } else {
-                if (!map.hasLayer(layer_vaccination_data)) map.addLayer(layer_vaccination_data);
-                if (!map.hasLayer(layer_catchup_facilities)) map.addLayer(layer_catchup_facilities);
-            }
-
-            // For Round 3: clear vaccination stats, show site count
-            if (round === 'Round 3') {
-                updateSummaryCard([], false);
-                var catchupCount = json_catchup_facilities.features.length;
-                document.getElementById('facilities-count').textContent = catchupCount + ' Sites (Catch-Up)';
-            } else {
-                filterFunc();
+                var visibleCatchup = 0;
+                layer_catchup_facilities.eachLayer(function() { visibleCatchup++; });
+                document.getElementById('facilities-count').textContent = visibleCatchup + ' Sites (Catch-Up)';
             }
         }
 
