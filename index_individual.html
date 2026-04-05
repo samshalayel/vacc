@@ -11031,7 +11031,8 @@ var FormatOptions = [
                             return currentRound === 'Both' || f.properties['Round'] === currentRound;
                         });
                         var filtersApplied = features.length < allVaxFeatures.length;
-                        updateSummaryCard(features, !filtersApplied);
+                        var useCorrectTotals = !filtersApplied && allVaxFeatures.length > 0;
+                        updateSummaryCard(features, useCorrectTotals);
                     }
                 }
             });
