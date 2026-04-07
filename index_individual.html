@@ -669,6 +669,20 @@ ul.photon-autocomplete {
             box-shadow: var(--shadow-lg) !important;
         }
 
+        /* Pinned popup style */
+        .popup-pinned {
+            box-shadow: 0 0 0 3px #f59e0b, 0 8px 32px rgba(0,0,0,0.25) !important;
+            border-radius: var(--radius-md) !important;
+        }
+        .popup-pinned::before {
+            content: '📌';
+            position: absolute;
+            top: -12px;
+            right: 8px;
+            font-size: 16px;
+            z-index: 1000;
+        }
+
         .leaflet-popup-content {
             margin: 0 !important;
             min-width: 280px;
@@ -10933,19 +10947,60 @@ var FormatOptions = [
         });
         map.addLayer(layer_OpenStreetMap_0);
 
+        // ── Pinned Popup Logic ───────────────────────────────────────────────────
+        var pinnedPopupLayer = null;
+
+        function pinPopup(layer) {
+            // Unpin previous if different layer
+            if (pinnedPopupLayer && pinnedPopupLayer !== layer) {
+                var prev = pinnedPopupLayer.getPopup();
+                if (prev && prev._container) prev._container.classList.remove('popup-pinned');
+                pinnedPopupLayer.closePopup();
+                pinnedPopupLayer = null;
+            }
+            // Toggle pin on same layer
+            if (pinnedPopupLayer === layer) {
+                var pop = layer.getPopup();
+                if (pop && pop._container) pop._container.classList.remove('popup-pinned');
+                pinnedPopupLayer = null;
+            } else {
+                pinnedPopupLayer = layer;
+                layer.openPopup();
+                setTimeout(function() {
+                    var pop = layer.getPopup();
+                    if (pop && pop._container) pop._container.classList.add('popup-pinned');
+                }, 30);
+            }
+        }
+
+        function onLayerClick(layer) {
+            // Single click on a layer while another is pinned → unpin old, show new
+            if (pinnedPopupLayer && pinnedPopupLayer !== layer) {
+                var prev = pinnedPopupLayer.getPopup();
+                if (prev && prev._container) prev._container.classList.remove('popup-pinned');
+                pinnedPopupLayer.closePopup();
+                pinnedPopupLayer = null;
+                layer.openPopup();
+            }
+        }
+
+        function onLayerMouseout(e, layer) {
+            if (pinnedPopupLayer === layer) return; // stay open if pinned
+            for (var i in e.target._eventParents) {
+                if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                    e.target._eventParents[i].resetStyle(e.target);
+                }
+            }
+            if (typeof layer.closePopup == 'function') layer.closePopup();
+        }
+        // ────────────────────────────────────────────────────────────────────────
+
         function pop_vaccination_data(feature, layer) {
             layer.on({
-                mouseout: function(e) {
-                    for (var i in e.target._eventParents) {
-                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
-                            e.target._eventParents[i].resetStyle(e.target);
-                        }
-                    }
-                    if (typeof layer.closePopup == 'function') {
-                        layer.closePopup();
-                    }
-                },
+                mouseout: function(e) { onLayerMouseout(e, layer); },
                 mouseover: highlightFeature,
+                dblclick: function(e) { L.DomEvent.stop(e); pinPopup(layer); },
+                click:    function(e) { onLayerClick(layer); },
             });
             var p = feature.properties;
 
@@ -11058,15 +11113,10 @@ var FormatOptions = [
 
         function pop_catchup_facilities(feature, layer) {
             layer.on({
-                mouseout: function(e) {
-                    for (var i in e.target._eventParents) {
-                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
-                            e.target._eventParents[i].resetStyle(e.target);
-                        }
-                    }
-                    if (typeof layer.closePopup == 'function') { layer.closePopup(); }
-                },
+                mouseout: function(e) { onLayerMouseout(e, layer); },
                 mouseover: highlightFeature,
+                dblclick: function(e) { L.DomEvent.stop(e); pinPopup(layer); },
+                click:    function(e) { onLayerClick(layer); },
             });
             var p = feature.properties;
             var s = getR3Stats(p.name_en);
@@ -11219,14 +11269,10 @@ var FormatOptions = [
 
         function pop_vaccination_r3_data(feature, layer) {
             layer.on({
-                mouseout: function(e) {
-                    for (var i in e.target._eventParents) {
-                        if (typeof e.target._eventParents[i].resetStyle === 'function')
-                            e.target._eventParents[i].resetStyle(e.target);
-                    }
-                    if (typeof layer.closePopup == 'function') layer.closePopup();
-                },
+                mouseout: function(e) { onLayerMouseout(e, layer); },
                 mouseover: highlightFeature,
+                dblclick: function(e) { L.DomEvent.stop(e); pinPopup(layer); },
+                click:    function(e) { onLayerClick(layer); },
             });
             var p = feature.properties;
             var popupContent = '<div class="popup-header">' +
@@ -11360,7 +11406,59 @@ var FormatOptions = [
             "DTP": "int"
         };
 
+        // Track open popup to restore after filter update
+        var activePopupInfo = null; // { layerName, facilityKey, facilityValue }
+
+        function saveOpenPopup() {
+            activePopupInfo = null;
+            map.eachLayer(function(lyr) {
+                if ("options" in lyr && "dataVar" in lyr["options"]) {
+                    lyr.eachLayer(function(sub) {
+                        if (sub.getPopup && sub.getPopup() && sub.getPopup().isOpen()) {
+                            var p = sub.feature && sub.feature.properties;
+                            if (p) {
+                                var key = p['Health Facility'] ? 'Health Facility' : (p['name_en'] ? 'name_en' : null);
+                                if (key) {
+                                    activePopupInfo = {
+                                        layerName: lyr["options"]["layerName"],
+                                        facilityKey: key,
+                                        facilityValue: p[key],
+                                        wasPinned: (pinnedPopupLayer === sub)
+                                    };
+                                }
+                            }
+                        }
+                    });
+                }
+            });
+            // Reset pinnedPopupLayer reference (will be restored after layers rebuild)
+            pinnedPopupLayer = null;
+        }
+
+        function restoreOpenPopup() {
+            if (!activePopupInfo) return;
+            map.eachLayer(function(lyr) {
+                if ("options" in lyr && lyr["options"]["layerName"] === activePopupInfo.layerName) {
+                    lyr.eachLayer(function(sub) {
+                        var p = sub.feature && sub.feature.properties;
+                        if (p && p[activePopupInfo.facilityKey] === activePopupInfo.facilityValue) {
+                            sub.openPopup();
+                            // Restore pin state if it was pinned
+                            if (activePopupInfo.wasPinned) {
+                                pinnedPopupLayer = sub;
+                                setTimeout(function() {
+                                    var pop = sub.getPopup();
+                                    if (pop && pop._container) pop._container.classList.add('popup-pinned');
+                                }, 30);
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
         function filterFunc() {
+            saveOpenPopup();
             map.eachLayer(function(lyr) {
                 if ("options" in lyr && "dataVar" in lyr["options"]) {
                     var features = window[lyr["options"]["dataVar"]].features.slice(0);
@@ -11448,6 +11546,7 @@ var FormatOptions = [
                     }
                 }
             });
+            restoreOpenPopup();
         }
 
         // Update Summary Card function
