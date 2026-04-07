@@ -11194,6 +11194,106 @@ var FormatOptions = [
         bounds_group.addLayer(layer_vaccination_data);
         map.addLayer(layer_vaccination_data);
 
+        // ── Round 3 Vaccination Stats Layer ─────────────────────────────────────
+        function style_vaccination_r3_0(feature) {
+            var colors = {
+                'Gaza': '#dc2626', 'North Gaza': '#7c3aed',
+                'Middle zone': '#2563eb', 'Khan Younis': '#16a34a', 'Rafah': '#d97706'
+            };
+            var fillColor = colors[feature.properties['Governorate']] || '#6b7280';
+            var total = feature.properties['TotalChildren'] || 0;
+            var radius;
+            if (total === 0)       radius = 5;
+            else if (total <= 5)   radius = 6;
+            else if (total <= 10)  radius = 8;
+            else if (total <= 20)  radius = 10;
+            else if (total <= 40)  radius = 14;
+            else if (total <= 80)  radius = 18;
+            else                   radius = 22;
+            return {
+                pane: 'pane_vaccination_r3', radius: radius, opacity: 1,
+                color: '#2c3e50', dashArray: '', lineCap: 'round', lineJoin: 'round',
+                weight: 2, fill: true, fillOpacity: 0.85, fillColor: fillColor, interactive: true
+            };
+        }
+
+        function pop_vaccination_r3_data(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function')
+                            e.target._eventParents[i].resetStyle(e.target);
+                    }
+                    if (typeof layer.closePopup == 'function') layer.closePopup();
+                },
+                mouseover: highlightFeature,
+            });
+            var p = feature.properties;
+            var popupContent = '<div class="popup-header">' +
+                '<h3>' + (p['Health Facility'] || '') + '</h3>' +
+                '<div class="governorate"><i class="fas fa-map-marker-alt"></i> ' + (p['Governorate'] || '') + ' | ' + (p['Organization'] || '') + '</div>' +
+                '</div><div class="popup-body">' +
+                '<div class="popup-section"><div class="popup-section-title">Children Summary (Round 3)</div>' +
+                '<div class="popup-grid">' +
+                '<div class="popup-stat"><div class="value">' + (p['TotalChildren'] || 0) + '</div><div class="label">Total</div></div>' +
+                '<div class="popup-stat success"><div class="value">' + (p['OnSchedule'] || 0) + '</div><div class="label">On Schedule</div></div>' +
+                '<div class="popup-stat warning"><div class="value">' + (p['Defaulter'] || 0) + '</div><div class="label">Defaulter</div></div>' +
+                '<div class="popup-stat danger"><div class="value">' + (p['ZeroDose'] || 0) + '</div><div class="label">Zero Dose</div></div>' +
+                '</div></div>' +
+                '<div class="popup-section"><div class="popup-section-title">Age Groups</div>' +
+                '<div class="popup-grid three-cols">' +
+                '<div class="popup-stat"><div class="value">' + (p['Age 0-12'] || 0) + '</div><div class="label">0-12 M</div></div>' +
+                '<div class="popup-stat"><div class="value">' + (p['Age 12-24'] || 0) + '</div><div class="label">12-24 M</div></div>' +
+                '<div class="popup-stat"><div class="value">' + (p['Age 24+'] || 0) + '</div><div class="label">24+ M</div></div>' +
+                '</div></div>' +
+                '<div class="popup-section"><div class="popup-section-title">Vaccines Given</div>' +
+                '<div class="vaccine-grid">' +
+                '<div class="vaccine-item"><div class="count">' + (p['BCG'] || 0) + '</div>BCG</div>' +
+                '<div class="vaccine-item"><div class="count">' + (p['HepB'] || 0) + '</div>HepB</div>' +
+                '<div class="vaccine-item"><div class="count">' + (p['IPV1'] || 0) + '</div>IPV1</div>' +
+                '<div class="vaccine-item"><div class="count">' + (p['IPV2'] || 0) + '</div>IPV2</div>' +
+                '<div class="vaccine-item"><div class="count">' + (p['bOPV1'] || 0) + '</div>bOPV1</div>' +
+                '<div class="vaccine-item"><div class="count">' + (p['bOPV2'] || 0) + '</div>bOPV2</div>' +
+                '<div class="vaccine-item"><div class="count">' + (p['bOPV3'] || 0) + '</div>bOPV3</div>' +
+                '<div class="vaccine-item"><div class="count">' + (p['bOPV4'] || 0) + '</div>bOPV4</div>' +
+                '<div class="vaccine-item"><div class="count">' + (p['bOPV5'] || 0) + '</div>bOPV5</div>' +
+                '<div class="vaccine-item"><div class="count">' + (p['Rota1'] || 0) + '</div>Rota1</div>' +
+                '<div class="vaccine-item"><div class="count">' + (p['Rota2'] || 0) + '</div>Rota2</div>' +
+                '<div class="vaccine-item"><div class="count">' + (p['Rota3'] || 0) + '</div>Rota3</div>' +
+                '<div class="vaccine-item"><div class="count">' + (p['PCV1'] || 0) + '</div>PCV1</div>' +
+                '<div class="vaccine-item"><div class="count">' + (p['PCV2'] || 0) + '</div>PCV2</div>' +
+                '<div class="vaccine-item"><div class="count">' + (p['PCV3'] || 0) + '</div>PCV3</div>' +
+                '<div class="vaccine-item"><div class="count">' + (p['Penta1'] || 0) + '</div>Penta1</div>' +
+                '<div class="vaccine-item"><div class="count">' + (p['Penta2'] || 0) + '</div>Penta2</div>' +
+                '<div class="vaccine-item"><div class="count">' + (p['Penta3'] || 0) + '</div>Penta3</div>' +
+                '<div class="vaccine-item"><div class="count">' + (p['MMR1'] || 0) + '</div>MMR1</div>' +
+                '<div class="vaccine-item"><div class="count">' + (p['MMR2'] || 0) + '</div>MMR2</div>' +
+                '<div class="vaccine-item"><div class="count">' + (p['DTP'] || 0) + '</div>DTP</div>' +
+                '</div></div></div>';
+            layer.bindPopup(popupContent, { maxHeight: 450, maxWidth: 320 });
+        }
+
+        map.createPane('pane_vaccination_r3');
+        map.getPane('pane_vaccination_r3').style.zIndex = 450;
+        map.getPane('pane_vaccination_r3').style['mix-blend-mode'] = 'normal';
+
+        var layer_vaccination_r3_data = new L.geoJson(json_vaccination_r3_data, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_vaccination_r3_data',
+            layerName: 'layer_vaccination_r3_data',
+            pane: 'pane_vaccination_r3',
+            onEachFeature: pop_vaccination_r3_data,
+            pointToLayer: function(feature, latlng) {
+                var c = feature.geometry.coordinates;
+                if (c[0] === 0 && c[1] === 0) return L.circleMarker([0, 0], { opacity: 0, fillOpacity: 0, radius: 0 });
+                return L.circleMarker(latlng, style_vaccination_r3_0(feature));
+            },
+        });
+        bounds_group.addLayer(layer_vaccination_r3_data);
+        // R3 layer hidden by default (Round 2 is default view)
+        // ────────────────────────────────────────────────────────────────────────
+
         // Search control
         var searchControl = new L.Control.Search({
             layer: layer_vaccination_data,
@@ -11312,6 +11412,14 @@ var FormatOptions = [
                     window[lyr["options"]["layerName"]].clearLayers();
                     window[lyr["options"]["layerName"]].addData(features);
 
+                    // Remove zero-coord features from R3 layer
+                    if (lyr["options"]["dataVar"] === 'json_vaccination_r3_data') {
+                        for (var i = features.length - 1; i >= 0; --i) {
+                            var c = features[i].geometry.coordinates;
+                            if (c[0] === 0 && c[1] === 0) features.splice(i, 1);
+                        }
+                    }
+
                     // Update summary card only from vaccination layer
                     if (lyr["options"]["dataVar"] === 'json_vaccination_individual_data') {
                         if (currentRound === 'Round 3') {
@@ -11325,6 +11433,17 @@ var FormatOptions = [
                             var filtersApplied = features.length < allVaxFeatures.length;
                             var useCorrectTotals = !filtersApplied && allVaxFeatures.length > 0;
                             updateSummaryCard(features, useCorrectTotals);
+                        }
+                    } else if (lyr["options"]["dataVar"] === 'json_vaccination_r3_data') {
+                        // Update R3 summary card with filtered features
+                        if (currentRound === 'Round 3' || currentRound === 'Both') {
+                            var allR3Valid = json_vaccination_r3_data.features.filter(function(f) {
+                                var c = f.geometry.coordinates;
+                                return !(c[0] === 0 && c[1] === 0) && f.properties['Round'] === 'Round 3';
+                            });
+                            var r3FiltersApplied = features.length < allR3Valid.length;
+                            updateR3SummaryCard(features, !r3FiltersApplied);
+                            document.getElementById('r3-facilities-count').textContent = features.length + ' Facilities';
                         }
                     }
                 }
@@ -11515,6 +11634,10 @@ var FormatOptions = [
             var o = f.properties['Organization'];
             if (o && orgs.indexOf(o) === -1) orgs.push(o);
         });
+        json_vaccination_r3_data.features.forEach(function(f) {
+            var o = f.properties['Organization'];
+            if (o && orgs.indexOf(o) === -1) orgs.push(o);
+        });
         json_catchup_facilities.features.forEach(function(f) {
             var o = f.properties['Organization'];
             if (o && orgs.indexOf(o) === -1) orgs.push(o);
@@ -11541,9 +11664,11 @@ var FormatOptions = [
         var facilities = [];
         json_vaccination_individual_data.features.forEach(function(f) {
             var name = f.properties['Health Facility'];
-            if (name && facilities.indexOf(name) === -1) {
-                facilities.push(name);
-            }
+            if (name && facilities.indexOf(name) === -1) facilities.push(name);
+        });
+        json_vaccination_r3_data.features.forEach(function(f) {
+            var name = f.properties['Health Facility'];
+            if (name && facilities.indexOf(name) === -1) facilities.push(name);
         });
         facilities.sort();
 
@@ -11673,30 +11798,31 @@ var FormatOptions = [
             var headerSub = document.getElementById('header-round-sub');
             if (headerSub) headerSub.textContent = round === 'Both' ? 'Rounds 2 & 3' : round + ' | ' + roundDates[round];
 
-            // Add both layers to map so filterFunc can repopulate them
-            if (!map.hasLayer(layer_vaccination_data)) map.addLayer(layer_vaccination_data);
-            if (!map.hasLayer(layer_catchup_facilities)) map.addLayer(layer_catchup_facilities);
-
-            // filterFunc applies currentRound filter and repopulates both layers
-            filterFunc();
-
             // Show/hide cards and layers based on selected round
             var r3Card = document.getElementById('r3-card');
             var summaryCard = document.getElementById('summary-card');
             if (round === 'Round 2') {
+                if (!map.hasLayer(layer_vaccination_data)) map.addLayer(layer_vaccination_data);
+                if (map.hasLayer(layer_vaccination_r3_data)) map.removeLayer(layer_vaccination_r3_data);
                 if (map.hasLayer(layer_catchup_facilities)) map.removeLayer(layer_catchup_facilities);
                 summaryCard.style.display = '';
                 r3Card.style.display = 'none';
             } else if (round === 'Round 3') {
                 if (map.hasLayer(layer_vaccination_data)) map.removeLayer(layer_vaccination_data);
+                if (!map.hasLayer(layer_vaccination_r3_data)) map.addLayer(layer_vaccination_r3_data);
+                if (map.hasLayer(layer_catchup_facilities)) map.removeLayer(layer_catchup_facilities);
                 summaryCard.style.display = 'none';
                 r3Card.style.display = '';
-                updateR3SummaryCard(json_vaccination_r3_data.features);
             } else if (round === 'Both') {
+                if (!map.hasLayer(layer_vaccination_data)) map.addLayer(layer_vaccination_data);
+                if (!map.hasLayer(layer_vaccination_r3_data)) map.addLayer(layer_vaccination_r3_data);
+                if (map.hasLayer(layer_catchup_facilities)) map.removeLayer(layer_catchup_facilities);
                 summaryCard.style.display = '';
                 r3Card.style.display = '';
-                updateR3SummaryCard(json_vaccination_r3_data.features);
             }
+
+            // filterFunc applies filters and repopulates active layers
+            filterFunc();
         }
 
         function clearSelect(selectId) {
@@ -11717,7 +11843,7 @@ var FormatOptions = [
         }
 
         // Update Round 3 Summary Card
-        function updateR3SummaryCard(features) {
+        function updateR3SummaryCard(features, useCorrectTotals) {
             var totalChildren = 0, onSchedule = 0, defaulter = 0, zeroDose = 0;
             var age012 = 0, age1224 = 0, age2436 = 0;
             var bcg = 0, hepb = 0, ipv1 = 0, ipv2 = 0;
@@ -11727,7 +11853,7 @@ var FormatOptions = [
             var pcv1 = 0, pcv2 = 0, pcv3 = 0;
             var mmr1 = 0, mmr2 = 0, dtp = 0;
 
-            if (json_vaccination_r3_data.summary) {
+            if (useCorrectTotals !== false && json_vaccination_r3_data.summary) {
                 var s = json_vaccination_r3_data.summary;
                 totalChildren = s.TotalChildren || 0;
                 onSchedule = s.OnSchedule || 0;
