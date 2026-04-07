@@ -669,6 +669,23 @@ ul.photon-autocomplete {
             box-shadow: var(--shadow-lg) !important;
         }
 
+        /* Defaulter label inside R3 circle */
+        .r3-defaulter-label {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            color: #fff;
+            font-weight: 800;
+            font-size: 10px;
+            text-align: center;
+            padding: 0 !important;
+            margin: 0 !important;
+            white-space: nowrap;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+            pointer-events: none;
+        }
+        .r3-defaulter-label::before { display: none !important; }
+
         /* Pinned popup style */
         .popup-pinned {
             box-shadow: 0 0 0 3px #f59e0b, 0 8px 32px rgba(0,0,0,0.25) !important;
@@ -1099,6 +1116,7 @@ ul.photon-autocomplete {
                                 <div class="summary-stat success"><div class="value" id="r3-sum-onschedule">0</div><div class="label">On Schedule</div></div>
                                 <div class="summary-stat warning"><div class="value" id="r3-sum-defaulter">0</div><div class="label">Defaulter</div></div>
                                 <div class="summary-stat danger"><div class="value" id="r3-sum-zerodose">0</div><div class="label">Zero Dose</div></div>
+                                <div class="summary-stat" style="background:#f3f4f6;"><div class="value" style="color:#6b7280;" id="r3-sum-notclassified">0</div><div class="label" style="color:#6b7280;">Not Classified</div></div>
                             </div>
                         </div>
                         <div class="summary-section">
@@ -11285,6 +11303,7 @@ var FormatOptions = [
                 '<div class="popup-stat success"><div class="value">' + (p['OnSchedule'] || 0) + '</div><div class="label">On Schedule</div></div>' +
                 '<div class="popup-stat warning"><div class="value">' + (p['Defaulter'] || 0) + '</div><div class="label">Defaulter</div></div>' +
                 '<div class="popup-stat danger"><div class="value">' + (p['ZeroDose'] || 0) + '</div><div class="label">Zero Dose</div></div>' +
+                ((p['NotClassified'] > 0) ? '<div class="popup-stat" style="background:#f3f4f6;"><div class="value" style="color:#6b7280;">' + (p['NotClassified'] || 0) + '</div><div class="label" style="color:#6b7280;">Not Classified</div></div>' : '') +
                 '</div></div>' +
                 '<div class="popup-section"><div class="popup-section-title">Age Groups</div>' +
                 '<div class="popup-grid three-cols">' +
@@ -11317,6 +11336,16 @@ var FormatOptions = [
                 '<div class="vaccine-item"><div class="count">' + (p['DTP'] || 0) + '</div>DTP</div>' +
                 '</div></div></div>';
             layer.bindPopup(popupContent, { maxHeight: 450, maxWidth: 320 });
+
+            // Show Defaulter count inside the circle
+            var defaulterCount = feature.properties['Defaulter'] || 0;
+            if (defaulterCount > 0) {
+                layer.bindTooltip(String(defaulterCount), {
+                    permanent: true,
+                    direction: 'center',
+                    className: 'r3-defaulter-label'
+                });
+            }
         }
 
         map.createPane('pane_vaccination_r3');
@@ -11448,8 +11477,16 @@ var FormatOptions = [
                                 pinnedPopupLayer = sub;
                                 setTimeout(function() {
                                     var pop = sub.getPopup();
-                                    if (pop && pop._container) pop._container.classList.add('popup-pinned');
-                                }, 30);
+                                    if (pop && pop._container) {
+                                        pop._container.classList.add('popup-pinned');
+                                    } else {
+                                        // retry once more
+                                        setTimeout(function() {
+                                            var p2 = sub.getPopup();
+                                            if (p2 && p2._container) p2._container.classList.add('popup-pinned');
+                                        }, 100);
+                                    }
+                                }, 60);
                             }
                         }
                     });
@@ -11943,7 +11980,7 @@ var FormatOptions = [
 
         // Update Round 3 Summary Card
         function updateR3SummaryCard(features, useCorrectTotals) {
-            var totalChildren = 0, onSchedule = 0, defaulter = 0, zeroDose = 0;
+            var totalChildren = 0, onSchedule = 0, defaulter = 0, zeroDose = 0, notClassified = 0;
             var age012 = 0, age1224 = 0, age2436 = 0;
             var bcg = 0, hepb = 0, ipv1 = 0, ipv2 = 0;
             var penta1 = 0, penta2 = 0, penta3 = 0;
@@ -11958,6 +11995,7 @@ var FormatOptions = [
                 onSchedule = s.OnSchedule || 0;
                 defaulter = s.Defaulter || 0;
                 zeroDose = s.ZeroDose || 0;
+                notClassified = s.NotClassified || 0;
                 age012 = s.Age012 || 0;
                 age1224 = s.Age1224 || 0;
                 age2436 = s.Age24plus || 0;
@@ -11976,6 +12014,7 @@ var FormatOptions = [
                     onSchedule += p['OnSchedule'] || 0;
                     defaulter += p['Defaulter'] || 0;
                     zeroDose += p['ZeroDose'] || 0;
+                    notClassified += p['NotClassified'] || 0;
                     age012 += p['Age 0-12'] || 0;
                     age1224 += p['Age 12-24'] || 0;
                     age2436 += p['Age 24+'] || 0;
@@ -12003,6 +12042,7 @@ var FormatOptions = [
             document.getElementById('r3-sum-onschedule').textContent = fmt(onSchedule);
             document.getElementById('r3-sum-defaulter').textContent = fmt(defaulter);
             document.getElementById('r3-sum-zerodose').textContent = fmt(zeroDose);
+            document.getElementById('r3-sum-notclassified').textContent = fmt(notClassified);
             document.getElementById('r3-sum-age012').textContent = fmt(age012);
             document.getElementById('r3-sum-age1224').textContent = fmt(age1224);
             document.getElementById('r3-sum-age2436').textContent = fmt(age2436);
