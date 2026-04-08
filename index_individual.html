@@ -676,14 +676,14 @@ ul.photon-autocomplete {
             background: transparent !important;
             border: none !important;
             box-shadow: none !important;
-            color: #fff;
+            color: #000;
             font-weight: 800;
-            font-size: 10px;
+            font-size: 9px;
             text-align: center;
             padding: 0 !important;
             margin: 0 !important;
             white-space: nowrap;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+            text-shadow: 0 1px 2px rgba(255,255,255,0.6);
             pointer-events: none;
         }
         .r3-defaulter-label::before { display: none !important; }
@@ -967,6 +967,32 @@ ul.photon-autocomplete {
         .summary-stat.warning .value { color: #f59e0b; }
         .summary-stat.danger .value { color: #ef4444; }
 
+        .summary-stat.clickable {
+            cursor: pointer;
+            transition: box-shadow 0.15s, transform 0.1s;
+        }
+        .summary-stat.clickable:hover {
+            box-shadow: 0 0 0 2px #6366f1;
+            transform: scale(1.04);
+        }
+        .summary-stat.card-filter-active {
+            box-shadow: 0 0 0 3px #6366f1 !important;
+            background: #eef2ff !important;
+        }
+        .summary-stat.card-filter-active.success { box-shadow: 0 0 0 3px #10b981 !important; background: #ecfdf5 !important; }
+        .summary-stat.card-filter-active.warning { box-shadow: 0 0 0 3px #f59e0b !important; background: #fffbeb !important; }
+        .summary-stat.card-filter-active.danger  { box-shadow: 0 0 0 3px #ef4444 !important; background: #fef2f2 !important; }
+        .card-filter-badge {
+            display: none;
+            background: #6366f1;
+            color: #fff;
+            font-size: 0.55rem;
+            padding: 1px 5px;
+            border-radius: 8px;
+            margin-top: 2px;
+        }
+        .summary-stat.card-filter-active .card-filter-badge { display: inline-block; }
+
         .vaccine-summary-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -1041,7 +1067,20 @@ ul.photon-autocomplete {
             align-items: center;
             gap: 3px;
             border: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: box-shadow 0.12s, transform 0.1s;
         }
+        .vaccine-badge:hover {
+            box-shadow: 0 0 0 2px #6366f1;
+            transform: scale(1.05);
+        }
+        .vaccine-badge.vax-active {
+            background: #eef2ff;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 2px #6366f1;
+        }
+        .vaccine-badge.vax-active .vax-name { color: #4338ca; }
+        .vaccine-badge.vax-active .vax-count { color: #4338ca; }
 
         .vaccine-badge .vax-name {
             color: var(--text-secondary);
@@ -1052,6 +1091,17 @@ ul.photon-autocomplete {
             color: var(--primary-color);
             font-weight: 700;
         }
+
+        .stat-pct {
+            font-size: 0.58rem;
+            font-weight: 600;
+            margin-left: 3px;
+            opacity: 0.85;
+        }
+        .summary-stat .stat-pct { color: #6b7280; }
+        .summary-stat.success .stat-pct { color: #059669; }
+        .summary-stat.warning .stat-pct { color: #d97706; }
+        .summary-stat.danger  .stat-pct { color: #dc2626; }
 
         /* Round 3 Card */
         .r3-card .summary-header {
@@ -1134,11 +1184,27 @@ ul.photon-autocomplete {
                         <div class="summary-section">
                             <div class="summary-section-title">Children Overview</div>
                             <div class="summary-grid">
-                                <div class="summary-stat"><div class="value" id="r3-sum-total">0</div><div class="label">Total Children</div></div>
-                                <div class="summary-stat success"><div class="value" id="r3-sum-onschedule">0</div><div class="label">On Schedule</div></div>
-                                <div class="summary-stat warning"><div class="value" id="r3-sum-defaulter">0</div><div class="label">Defaulter</div></div>
-                                <div class="summary-stat danger"><div class="value" id="r3-sum-zerodose">0</div><div class="label">Zero Dose</div></div>
-                                <div class="summary-stat" style="background:#f3f4f6;"><div class="value" style="color:#6b7280;" id="r3-sum-notclassified">0</div><div class="label" style="color:#6b7280;">Not Classified</div></div>
+                                <div class="summary-stat clickable" id="r3-stat-card-total" onclick="setR3CardFilter(null)" title="Show All">
+                                    <div class="value" id="r3-sum-total">0</div><div class="label">Total Children</div>
+                                    <div class="card-filter-badge">✓ Active</div>
+                                </div>
+                                <div class="summary-stat success clickable" id="r3-stat-card-onschedule" onclick="setR3CardFilter('OnSchedule')" title="Filter: On Schedule only">
+                                    <div class="value" id="r3-sum-onschedule">0</div><div class="label">On Schedule</div>
+                                    <div class="card-filter-badge">✓ Active</div>
+                                </div>
+                                <div class="summary-stat warning clickable" id="r3-stat-card-defaulter" onclick="setR3CardFilter('Defaulter')" title="Filter: Defaulters only">
+                                    <div class="value" id="r3-sum-defaulter">0</div><div class="label">Defaulter</div>
+                                    <div class="card-filter-badge">✓ Active</div>
+                                </div>
+                                <div class="summary-stat danger clickable" id="r3-stat-card-zerodose" onclick="setR3CardFilter('ZeroDose')" title="Filter: Zero Dose only">
+                                    <div class="value" id="r3-sum-zerodose">0</div><div class="label">Zero Dose</div>
+                                    <div class="card-filter-badge">✓ Active</div>
+                                </div>
+                                <div class="summary-stat clickable" id="r3-stat-card-notclassified" onclick="setR3CardFilter('NotClassified')" title="Filter: Not Classified only" style="background:#f3f4f6;">
+                                    <div class="value" style="color:#6b7280;" id="r3-sum-notclassified">0</div>
+                                    <div class="label" style="color:#6b7280;">Not Classified</div>
+                                    <div class="card-filter-badge" style="background:#6b7280;">✓ Active</div>
+                                </div>
                             </div>
                         </div>
                         <div class="summary-section">
@@ -1151,14 +1217,16 @@ ul.photon-autocomplete {
                         </div>
                         <div class="summary-section">
                             <div class="summary-section-title">Vaccination Visits with Vaccines</div>
+                            <div id="r3-vax-breakdown-bar" style="display:none;background:#f0f4ff;border:1px solid #c7d2fe;border-radius:6px;padding:6px 8px;margin-bottom:6px;font-size:0.65rem;line-height:1.6;">
+                            </div>
                             <div class="visit-detail-section">
                                 <div class="visit-detail-header" data-visit="v1">
                                     <span class="visit-name"><i class="fas fa-baby"></i> Visit 1: Birth</span>
                                     <span class="visit-total" id="r3-sum-v1">0</span>
                                 </div>
                                 <div class="vaccines-list">
-                                    <div class="vaccine-badge"><span class="vax-name">BCG</span><span class="vax-count" id="r3-sum-bcg">0</span></div>
-                                    <div class="vaccine-badge"><span class="vax-name">HepB</span><span class="vax-count" id="r3-sum-hepb">0</span></div>
+                                    <div class="vaccine-badge" data-vax="BCG"  data-r3="1" onclick="setR3VaxFilter(event,'BCG')"><span class="vax-name">BCG</span><span class="vax-count" id="r3-sum-bcg">0</span></div>
+                                    <div class="vaccine-badge" data-vax="HepB" data-r3="1" onclick="setR3VaxFilter(event,'HepB')"><span class="vax-name">HepB</span><span class="vax-count" id="r3-sum-hepb">0</span></div>
                                 </div>
                             </div>
                             <div class="visit-detail-section">
@@ -1167,7 +1235,7 @@ ul.photon-autocomplete {
                                     <span class="visit-total" id="r3-sum-v2">0</span>
                                 </div>
                                 <div class="vaccines-list">
-                                    <div class="vaccine-badge"><span class="vax-name">IPV1</span><span class="vax-count" id="r3-sum-ipv1">0</span></div>
+                                    <div class="vaccine-badge" data-vax="IPV1" data-r3="1" onclick="setR3VaxFilter(event,'IPV1')"><span class="vax-name">IPV1</span><span class="vax-count" id="r3-sum-ipv1">0</span></div>
                                 </div>
                             </div>
                             <div class="visit-detail-section">
@@ -1176,11 +1244,11 @@ ul.photon-autocomplete {
                                     <span class="visit-total" id="r3-sum-v3">0</span>
                                 </div>
                                 <div class="vaccines-list">
-                                    <div class="vaccine-badge"><span class="vax-name">IPV2</span><span class="vax-count" id="r3-sum-ipv2">0</span></div>
-                                    <div class="vaccine-badge"><span class="vax-name">bOPV1</span><span class="vax-count" id="r3-sum-bopv1">0</span></div>
-                                    <div class="vaccine-badge"><span class="vax-name">Rota1</span><span class="vax-count" id="r3-sum-rota1">0</span></div>
-                                    <div class="vaccine-badge"><span class="vax-name">PCV1</span><span class="vax-count" id="r3-sum-pcv1">0</span></div>
-                                    <div class="vaccine-badge"><span class="vax-name">Penta1</span><span class="vax-count" id="r3-sum-penta1">0</span></div>
+                                    <div class="vaccine-badge" data-vax="IPV2"   data-r3="1" onclick="setR3VaxFilter(event,'IPV2')"><span class="vax-name">IPV2</span><span class="vax-count" id="r3-sum-ipv2">0</span></div>
+                                    <div class="vaccine-badge" data-vax="bOPV1"  data-r3="1" onclick="setR3VaxFilter(event,'bOPV1')"><span class="vax-name">bOPV1</span><span class="vax-count" id="r3-sum-bopv1">0</span></div>
+                                    <div class="vaccine-badge" data-vax="Rota1"  data-r3="1" onclick="setR3VaxFilter(event,'Rota1')"><span class="vax-name">Rota1</span><span class="vax-count" id="r3-sum-rota1">0</span></div>
+                                    <div class="vaccine-badge" data-vax="PCV1"   data-r3="1" onclick="setR3VaxFilter(event,'PCV1')"><span class="vax-name">PCV1</span><span class="vax-count" id="r3-sum-pcv1">0</span></div>
+                                    <div class="vaccine-badge" data-vax="Penta1" data-r3="1" onclick="setR3VaxFilter(event,'Penta1')"><span class="vax-name">Penta1</span><span class="vax-count" id="r3-sum-penta1">0</span></div>
                                 </div>
                             </div>
                             <div class="visit-detail-section">
@@ -1189,10 +1257,10 @@ ul.photon-autocomplete {
                                     <span class="visit-total" id="r3-sum-v4">0</span>
                                 </div>
                                 <div class="vaccines-list">
-                                    <div class="vaccine-badge"><span class="vax-name">bOPV2</span><span class="vax-count" id="r3-sum-bopv2">0</span></div>
-                                    <div class="vaccine-badge"><span class="vax-name">Rota2</span><span class="vax-count" id="r3-sum-rota2">0</span></div>
-                                    <div class="vaccine-badge"><span class="vax-name">PCV2</span><span class="vax-count" id="r3-sum-pcv2">0</span></div>
-                                    <div class="vaccine-badge"><span class="vax-name">Penta2</span><span class="vax-count" id="r3-sum-penta2">0</span></div>
+                                    <div class="vaccine-badge" data-vax="bOPV2"  data-r3="1" onclick="setR3VaxFilter(event,'bOPV2')"><span class="vax-name">bOPV2</span><span class="vax-count" id="r3-sum-bopv2">0</span></div>
+                                    <div class="vaccine-badge" data-vax="Rota2"  data-r3="1" onclick="setR3VaxFilter(event,'Rota2')"><span class="vax-name">Rota2</span><span class="vax-count" id="r3-sum-rota2">0</span></div>
+                                    <div class="vaccine-badge" data-vax="PCV2"   data-r3="1" onclick="setR3VaxFilter(event,'PCV2')"><span class="vax-name">PCV2</span><span class="vax-count" id="r3-sum-pcv2">0</span></div>
+                                    <div class="vaccine-badge" data-vax="Penta2" data-r3="1" onclick="setR3VaxFilter(event,'Penta2')"><span class="vax-name">Penta2</span><span class="vax-count" id="r3-sum-penta2">0</span></div>
                                 </div>
                             </div>
                             <div class="visit-detail-section">
@@ -1201,9 +1269,9 @@ ul.photon-autocomplete {
                                     <span class="visit-total" id="r3-sum-v5">0</span>
                                 </div>
                                 <div class="vaccines-list">
-                                    <div class="vaccine-badge"><span class="vax-name">bOPV3</span><span class="vax-count" id="r3-sum-bopv3">0</span></div>
-                                    <div class="vaccine-badge"><span class="vax-name">Rota3</span><span class="vax-count" id="r3-sum-rota3">0</span></div>
-                                    <div class="vaccine-badge"><span class="vax-name">Penta3</span><span class="vax-count" id="r3-sum-penta3">0</span></div>
+                                    <div class="vaccine-badge" data-vax="bOPV3"  data-r3="1" onclick="setR3VaxFilter(event,'bOPV3')"><span class="vax-name">bOPV3</span><span class="vax-count" id="r3-sum-bopv3">0</span></div>
+                                    <div class="vaccine-badge" data-vax="Rota3"  data-r3="1" onclick="setR3VaxFilter(event,'Rota3')"><span class="vax-name">Rota3</span><span class="vax-count" id="r3-sum-rota3">0</span></div>
+                                    <div class="vaccine-badge" data-vax="Penta3" data-r3="1" onclick="setR3VaxFilter(event,'Penta3')"><span class="vax-name">Penta3</span><span class="vax-count" id="r3-sum-penta3">0</span></div>
                                 </div>
                             </div>
                             <div class="visit-detail-section">
@@ -1212,8 +1280,8 @@ ul.photon-autocomplete {
                                     <span class="visit-total" id="r3-sum-v6">0</span>
                                 </div>
                                 <div class="vaccines-list">
-                                    <div class="vaccine-badge"><span class="vax-name">PCV3</span><span class="vax-count" id="r3-sum-pcv3">0</span></div>
-                                    <div class="vaccine-badge"><span class="vax-name">MMR1</span><span class="vax-count" id="r3-sum-mmr1">0</span></div>
+                                    <div class="vaccine-badge" data-vax="PCV3" data-r3="1" onclick="setR3VaxFilter(event,'PCV3')"><span class="vax-name">PCV3</span><span class="vax-count" id="r3-sum-pcv3">0</span></div>
+                                    <div class="vaccine-badge" data-vax="MMR1" data-r3="1" onclick="setR3VaxFilter(event,'MMR1')"><span class="vax-name">MMR1</span><span class="vax-count" id="r3-sum-mmr1">0</span></div>
                                 </div>
                             </div>
                             <div class="visit-detail-section">
@@ -1222,9 +1290,9 @@ ul.photon-autocomplete {
                                     <span class="visit-total" id="r3-sum-v7">0</span>
                                 </div>
                                 <div class="vaccines-list">
-                                    <div class="vaccine-badge"><span class="vax-name">bOPV4</span><span class="vax-count" id="r3-sum-bopv4">0</span></div>
-                                    <div class="vaccine-badge"><span class="vax-name">MMR2</span><span class="vax-count" id="r3-sum-mmr2">0</span></div>
-                                    <div class="vaccine-badge"><span class="vax-name">DTP</span><span class="vax-count" id="r3-sum-dtp">0</span></div>
+                                    <div class="vaccine-badge" data-vax="bOPV4" data-r3="1" onclick="setR3VaxFilter(event,'bOPV4')"><span class="vax-name">bOPV4</span><span class="vax-count" id="r3-sum-bopv4">0</span></div>
+                                    <div class="vaccine-badge" data-vax="MMR2"  data-r3="1" onclick="setR3VaxFilter(event,'MMR2')"><span class="vax-name">MMR2</span><span class="vax-count" id="r3-sum-mmr2">0</span></div>
+                                    <div class="vaccine-badge" data-vax="DTP"   data-r3="1" onclick="setR3VaxFilter(event,'DTP')"><span class="vax-name">DTP</span><span class="vax-count" id="r3-sum-dtp">0</span></div>
                                 </div>
                             </div>
                         </div>
@@ -1248,21 +1316,25 @@ ul.photon-autocomplete {
                         <div class="summary-section">
                             <div class="summary-section-title">Children Overview</div>
                             <div class="summary-grid">
-                                <div class="summary-stat">
+                                <div class="summary-stat clickable" id="stat-card-total" onclick="setCardFilter(null)" title="Show All">
                                     <div class="value" id="sum-total">0</div>
                                     <div class="label">Total Children</div>
+                                    <div class="card-filter-badge">✓ Active</div>
                                 </div>
-                                <div class="summary-stat success">
-                                    <div class="value" id="sum-onschedule">0</div>
+                                <div class="summary-stat success clickable" id="stat-card-onschedule" onclick="setCardFilter('OnSchedule')" title="Filter: On Schedule only">
+                                    <div class="value" id="sum-onschedule">0<span class="stat-pct" id="sum-onschedule-pct"></span></div>
                                     <div class="label">On Schedule</div>
+                                    <div class="card-filter-badge">✓ Active</div>
                                 </div>
-                                <div class="summary-stat warning">
-                                    <div class="value" id="sum-defaulter">0</div>
+                                <div class="summary-stat warning clickable" id="stat-card-defaulter" onclick="setCardFilter('Defaulter')" title="Filter: Defaulters only">
+                                    <div class="value" id="sum-defaulter">0<span class="stat-pct" id="sum-defaulter-pct"></span></div>
                                     <div class="label">Defaulter</div>
+                                    <div class="card-filter-badge">✓ Active</div>
                                 </div>
-                                <div class="summary-stat danger">
-                                    <div class="value" id="sum-zerodose">0</div>
+                                <div class="summary-stat danger clickable" id="stat-card-zerodose" onclick="setCardFilter('ZeroDose')" title="Filter: Zero Dose only">
+                                    <div class="value" id="sum-zerodose">0<span class="stat-pct" id="sum-zerodose-pct"></span></div>
                                     <div class="label">Zero Dose</div>
+                                    <div class="card-filter-badge">✓ Active</div>
                                 </div>
                             </div>
                         </div>
@@ -1293,8 +1365,8 @@ ul.photon-autocomplete {
                                     <span class="visit-total" id="sum-v1">0</span>
                                 </div>
                                 <div class="vaccines-list">
-                                    <div class="vaccine-badge"><span class="vax-name">BCG</span><span class="vax-count" id="sum-bcg">0</span></div>
-                                    <div class="vaccine-badge"><span class="vax-name">HepB</span><span class="vax-count" id="sum-hepb">0</span></div>
+                                    <div class="vaccine-badge" data-vax="BCG" onclick="setVaxFilter(event,'BCG')"><span class="vax-name">BCG</span><span class="vax-count" id="sum-bcg">0</span></div>
+                                    <div class="vaccine-badge" data-vax="HepB" onclick="setVaxFilter(event,'HepB')"><span class="vax-name">HepB</span><span class="vax-count" id="sum-hepb">0</span></div>
                                 </div>
                             </div>
 
@@ -1305,7 +1377,7 @@ ul.photon-autocomplete {
                                     <span class="visit-total" id="sum-v2">0</span>
                                 </div>
                                 <div class="vaccines-list">
-                                    <div class="vaccine-badge"><span class="vax-name">IPV1</span><span class="vax-count" id="sum-ipv1">0</span></div>
+                                    <div class="vaccine-badge" data-vax="IPV1" onclick="setVaxFilter(event,'IPV1')"><span class="vax-name">IPV1</span><span class="vax-count" id="sum-ipv1">0</span></div>
                                 </div>
                             </div>
 
@@ -1316,11 +1388,11 @@ ul.photon-autocomplete {
                                     <span class="visit-total" id="sum-v3">0</span>
                                 </div>
                                 <div class="vaccines-list">
-                                    <div class="vaccine-badge"><span class="vax-name">IPV2</span><span class="vax-count" id="sum-ipv2">0</span></div>
-                                    <div class="vaccine-badge"><span class="vax-name">bOPV1</span><span class="vax-count" id="sum-bopv1">0</span></div>
-                                    <div class="vaccine-badge"><span class="vax-name">Rota1</span><span class="vax-count" id="sum-rota1">0</span></div>
-                                    <div class="vaccine-badge"><span class="vax-name">PCV1</span><span class="vax-count" id="sum-pcv1">0</span></div>
-                                    <div class="vaccine-badge"><span class="vax-name">Penta1</span><span class="vax-count" id="sum-penta1">0</span></div>
+                                    <div class="vaccine-badge" data-vax="IPV2"  onclick="setVaxFilter(event,'IPV2')"><span class="vax-name">IPV2</span><span class="vax-count" id="sum-ipv2">0</span></div>
+                                    <div class="vaccine-badge" data-vax="bOPV1" onclick="setVaxFilter(event,'bOPV1')"><span class="vax-name">bOPV1</span><span class="vax-count" id="sum-bopv1">0</span></div>
+                                    <div class="vaccine-badge" data-vax="Rota1" onclick="setVaxFilter(event,'Rota1')"><span class="vax-name">Rota1</span><span class="vax-count" id="sum-rota1">0</span></div>
+                                    <div class="vaccine-badge" data-vax="PCV1"  onclick="setVaxFilter(event,'PCV1')"><span class="vax-name">PCV1</span><span class="vax-count" id="sum-pcv1">0</span></div>
+                                    <div class="vaccine-badge" data-vax="Penta1" onclick="setVaxFilter(event,'Penta1')"><span class="vax-name">Penta1</span><span class="vax-count" id="sum-penta1">0</span></div>
                                 </div>
                             </div>
 
@@ -1331,10 +1403,10 @@ ul.photon-autocomplete {
                                     <span class="visit-total" id="sum-v4">0</span>
                                 </div>
                                 <div class="vaccines-list">
-                                    <div class="vaccine-badge"><span class="vax-name">bOPV2</span><span class="vax-count" id="sum-bopv2">0</span></div>
-                                    <div class="vaccine-badge"><span class="vax-name">Rota2</span><span class="vax-count" id="sum-rota2">0</span></div>
-                                    <div class="vaccine-badge"><span class="vax-name">PCV2</span><span class="vax-count" id="sum-pcv2">0</span></div>
-                                    <div class="vaccine-badge"><span class="vax-name">Penta2</span><span class="vax-count" id="sum-penta2">0</span></div>
+                                    <div class="vaccine-badge" data-vax="bOPV2" onclick="setVaxFilter(event,'bOPV2')"><span class="vax-name">bOPV2</span><span class="vax-count" id="sum-bopv2">0</span></div>
+                                    <div class="vaccine-badge" data-vax="Rota2" onclick="setVaxFilter(event,'Rota2')"><span class="vax-name">Rota2</span><span class="vax-count" id="sum-rota2">0</span></div>
+                                    <div class="vaccine-badge" data-vax="PCV2"  onclick="setVaxFilter(event,'PCV2')"><span class="vax-name">PCV2</span><span class="vax-count" id="sum-pcv2">0</span></div>
+                                    <div class="vaccine-badge" data-vax="Penta2" onclick="setVaxFilter(event,'Penta2')"><span class="vax-name">Penta2</span><span class="vax-count" id="sum-penta2">0</span></div>
                                 </div>
                             </div>
 
@@ -1345,9 +1417,9 @@ ul.photon-autocomplete {
                                     <span class="visit-total" id="sum-v5">0</span>
                                 </div>
                                 <div class="vaccines-list">
-                                    <div class="vaccine-badge"><span class="vax-name">bOPV3</span><span class="vax-count" id="sum-bopv3">0</span></div>
-                                    <div class="vaccine-badge"><span class="vax-name">Rota3</span><span class="vax-count" id="sum-rota3">0</span></div>
-                                    <div class="vaccine-badge"><span class="vax-name">Penta3</span><span class="vax-count" id="sum-penta3">0</span></div>
+                                    <div class="vaccine-badge" data-vax="bOPV3" onclick="setVaxFilter(event,'bOPV3')"><span class="vax-name">bOPV3</span><span class="vax-count" id="sum-bopv3">0</span></div>
+                                    <div class="vaccine-badge" data-vax="Rota3" onclick="setVaxFilter(event,'Rota3')"><span class="vax-name">Rota3</span><span class="vax-count" id="sum-rota3">0</span></div>
+                                    <div class="vaccine-badge" data-vax="Penta3" onclick="setVaxFilter(event,'Penta3')"><span class="vax-name">Penta3</span><span class="vax-count" id="sum-penta3">0</span></div>
                                 </div>
                             </div>
 
@@ -1358,8 +1430,8 @@ ul.photon-autocomplete {
                                     <span class="visit-total" id="sum-v6">0</span>
                                 </div>
                                 <div class="vaccines-list">
-                                    <div class="vaccine-badge"><span class="vax-name">PCV3</span><span class="vax-count" id="sum-pcv3">0</span></div>
-                                    <div class="vaccine-badge"><span class="vax-name">MMR1</span><span class="vax-count" id="sum-mmr1">0</span></div>
+                                    <div class="vaccine-badge" data-vax="PCV3" onclick="setVaxFilter(event,'PCV3')"><span class="vax-name">PCV3</span><span class="vax-count" id="sum-pcv3">0</span></div>
+                                    <div class="vaccine-badge" data-vax="MMR1" onclick="setVaxFilter(event,'MMR1')"><span class="vax-name">MMR1</span><span class="vax-count" id="sum-mmr1">0</span></div>
                                 </div>
                             </div>
 
@@ -1370,9 +1442,9 @@ ul.photon-autocomplete {
                                     <span class="visit-total" id="sum-v7">0</span>
                                 </div>
                                 <div class="vaccines-list">
-                                    <div class="vaccine-badge"><span class="vax-name">bOPV4</span><span class="vax-count" id="sum-bopv4">0</span></div>
-                                    <div class="vaccine-badge"><span class="vax-name">MMR2</span><span class="vax-count" id="sum-mmr2">0</span></div>
-                                    <div class="vaccine-badge"><span class="vax-name">DTP</span><span class="vax-count" id="sum-dtp">0</span></div>
+                                    <div class="vaccine-badge" data-vax="bOPV4" onclick="setVaxFilter(event,'bOPV4')"><span class="vax-name">bOPV4</span><span class="vax-count" id="sum-bopv4">0</span></div>
+                                    <div class="vaccine-badge" data-vax="MMR2" onclick="setVaxFilter(event,'MMR2')"><span class="vax-name">MMR2</span><span class="vax-count" id="sum-mmr2">0</span></div>
+                                    <div class="vaccine-badge" data-vax="DTP"  onclick="setVaxFilter(event,'DTP')"><span class="vax-name">DTP</span><span class="vax-count" id="sum-dtp">0</span></div>
                                 </div>
                             </div>
                         </div>
@@ -10572,7 +10644,7 @@ module.exports = {
 </script>
         <script src="js/leaflet.markercluster.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.js"></script>
-        <script src="data/vaccination_r3_data.js"></script>
+        <script src="data/vaccination_r3_data.js?v=20260408"></script>
         <script>
 (function (factory) {
 
@@ -11087,21 +11159,30 @@ var FormatOptions = [
         }
 
         function style_vaccination_data_0(feature) {
-            var totalChildren = feature.properties['TotalChildren'] || 0;
+            var displayVal;
+            if (activeVaxFilter && activeVaxFilter.length > 0) {
+                displayVal = 0;
+                for (var v = 0; v < activeVaxFilter.length; v++)
+                    displayVal += (feature.properties[activeVaxFilter[v]] || 0);
+            } else if (activeStatusFilter) {
+                displayVal = feature.properties[activeStatusFilter] || 0;
+            } else {
+                displayVal = feature.properties['TotalChildren'] || 0;
+            }
 
-            // Circle size based on total children (range 0-1235)
+            // Circle size based on display value
             var radius;
-            if (totalChildren === 0) {
+            if (displayVal === 0) {
                 radius = 5;
-            } else if (totalChildren <= 20) {
+            } else if (displayVal <= 20) {
                 radius = 7;
-            } else if (totalChildren <= 50) {
+            } else if (displayVal <= 50) {
                 radius = 9;
-            } else if (totalChildren <= 100) {
+            } else if (displayVal <= 100) {
                 radius = 12;
-            } else if (totalChildren <= 200) {
+            } else if (displayVal <= 200) {
                 radius = 15;
-            } else if (totalChildren <= 500) {
+            } else if (displayVal <= 500) {
                 radius = 20;
             } else {
                 radius = 28;
@@ -11302,7 +11383,20 @@ var FormatOptions = [
             return keys.reduce(function(s, k) { return s + (feature.properties[k] || 0); }, 0);
         }
 
+        var R3_STATUS_SUFFIX = { 'Defaulter': '_D', 'OnSchedule': '_S', 'ZeroDose': '_Z' };
+
         function getCircleLabel(feature) {
+            // Badge vaccine filter: always show only the LAST selected vaccine
+            if (activeR3VaxFilter && activeR3VaxFilter.length > 0) {
+                var lastVax = activeR3VaxFilter[activeR3VaxFilter.length - 1];
+                var suffix = activeR3StatusFilter ? (R3_STATUS_SUFFIX[activeR3StatusFilter] || '') : '';
+                var key = lastVax + suffix;
+                var c = feature.properties[key] || 0;
+                return c > 0 ? lastVax + ':' + c : null;
+            }
+            // Status filter: hide defaulter label (status shown via card)
+            if (activeR3StatusFilter) return null;
+            // Visit header selection
             if (r3VaxSelection.length === 0) {
                 var d = feature.properties['Defaulter'] || 0;
                 return d > 0 ? String(d) : null;
@@ -11323,19 +11417,28 @@ var FormatOptions = [
                 'Middle zone': '#2563eb', 'Khan Younis': '#16a34a', 'Rafah': '#d97706'
             };
             var fillColor = colors[feature.properties['Governorate']] || '#6b7280';
-            var total = feature.properties['TotalChildren'] || 0;
+            var displayVal;
+            if (activeR3VaxFilter && activeR3VaxFilter.length > 0) {
+                var lastVax = activeR3VaxFilter[activeR3VaxFilter.length - 1];
+                var suffix = activeR3StatusFilter ? (R3_STATUS_SUFFIX[activeR3StatusFilter] || '') : '';
+                displayVal = feature.properties[lastVax + suffix] || 0;
+            } else if (activeR3StatusFilter) {
+                displayVal = feature.properties[activeR3StatusFilter] || 0;
+            } else {
+                displayVal = feature.properties['TotalChildren'] || 0;
+            }
             var radius;
-            if (total === 0)       radius = 5;
-            else if (total <= 5)   radius = 6;
-            else if (total <= 10)  radius = 8;
-            else if (total <= 20)  radius = 10;
-            else if (total <= 40)  radius = 14;
-            else if (total <= 80)  radius = 18;
-            else                   radius = 22;
+            if (displayVal === 0)       radius = 5;
+            else if (displayVal <= 5)   radius = 6;
+            else if (displayVal <= 10)  radius = 8;
+            else if (displayVal <= 20)  radius = 10;
+            else if (displayVal <= 40)  radius = 14;
+            else if (displayVal <= 80)  radius = 18;
+            else                        radius = 22;
             return {
                 pane: 'pane_vaccination_r3', radius: radius, opacity: 1,
                 color: '#2c3e50', dashArray: '', lineCap: 'round', lineJoin: 'round',
-                weight: 2, fill: true, fillOpacity: 0.85, fillColor: fillColor, interactive: true
+                weight: 2, fill: true, fillOpacity: 1, fillColor: fillColor, interactive: true
             };
         }
 
@@ -11434,7 +11537,23 @@ var FormatOptions = [
                 var count = cluster.getChildCount();
                 var size = count <= 5 ? 36 : count <= 15 ? 44 : count <= 30 ? 52 : 60;
                 var bottomHtml = '';
-                if (r3VaxSelection.length === 0) {
+                if (activeR3VaxFilter && activeR3VaxFilter.length > 0) {
+                    var lastVax = activeR3VaxFilter[activeR3VaxFilter.length - 1];
+                    var suffix = activeR3StatusFilter ? (R3_STATUS_SUFFIX[activeR3StatusFilter] || '') : '';
+                    var vaxKey = lastVax + suffix;
+                    var totalVax = 0;
+                    markers.forEach(function(m) {
+                        totalVax += (m.feature && m.feature.properties[vaxKey]) || 0;
+                    });
+                    bottomHtml = '<span style="font-size:10px;opacity:0.9;">💉' + lastVax + ':' + totalVax + '</span>';
+                } else if (activeR3StatusFilter) {
+                    var statusIcons = { 'OnSchedule': '✅', 'Defaulter': '⚠️', 'ZeroDose': '🔴' };
+                    var totalStatus = 0;
+                    markers.forEach(function(m) {
+                        totalStatus += (m.feature && m.feature.properties[activeR3StatusFilter]) || 0;
+                    });
+                    bottomHtml = '<span style="font-size:10px;opacity:0.9;">' + (statusIcons[activeR3StatusFilter] || '') + totalStatus + '</span>';
+                } else if (r3VaxSelection.length === 0) {
                     var totalDef = 0;
                     markers.forEach(function(m) {
                         totalDef += (m.feature && m.feature.properties['Defaulter']) || 0;
@@ -11514,6 +11633,92 @@ var FormatOptions = [
                 }, 300);
             }
         });
+
+        // ── Card Status Filter ───────────────────────────────────────────────────
+        var activeStatusFilter = null;   // R2: null | 'OnSchedule' | 'Defaulter' | 'ZeroDose'
+        var activeR3StatusFilter = null; // R3: null | 'OnSchedule' | 'Defaulter' | 'ZeroDose'
+
+        // ── Vaccine Filter ───────────────────────────────────────────────────────
+        var activeVaxFilter   = []; // R2 vaccine filter
+        var activeR3VaxFilter = []; // R3 vaccine filter
+
+        function setVaxFilter(event, vaxKey) {
+            if (event.ctrlKey || event.metaKey) {
+                var idx = activeVaxFilter.indexOf(vaxKey);
+                if (idx >= 0) activeVaxFilter.splice(idx, 1);
+                else activeVaxFilter.push(vaxKey);
+            } else {
+                activeVaxFilter = (activeVaxFilter.length === 1 && activeVaxFilter[0] === vaxKey) ? [] : [vaxKey];
+            }
+            document.querySelectorAll('.vaccine-badge[data-vax]:not([data-r3])').forEach(function(b) {
+                b.classList.toggle('vax-active', activeVaxFilter.indexOf(b.dataset.vax) >= 0);
+            });
+            filterFunc();
+        }
+
+        function setR3VaxFilter(event, vaxKey) {
+            if (event.ctrlKey || event.metaKey) {
+                var idx = activeR3VaxFilter.indexOf(vaxKey);
+                if (idx >= 0) activeR3VaxFilter.splice(idx, 1);
+                else activeR3VaxFilter.push(vaxKey);
+            } else {
+                activeR3VaxFilter = (activeR3VaxFilter.length === 1 && activeR3VaxFilter[0] === vaxKey) ? [] : [vaxKey];
+            }
+            document.querySelectorAll('.vaccine-badge[data-r3]').forEach(function(b) {
+                b.classList.toggle('vax-active', activeR3VaxFilter.indexOf(b.dataset.vax) >= 0);
+            });
+            filterFunc();
+        }
+
+        function setCardFilter(status) {
+            if (activeStatusFilter === status || status === null) {
+                activeStatusFilter = null;
+            } else {
+                activeStatusFilter = status;
+            }
+            var cardMap = {
+                'OnSchedule': 'stat-card-onschedule',
+                'Defaulter':  'stat-card-defaulter',
+                'ZeroDose':   'stat-card-zerodose'
+            };
+            ['stat-card-total','stat-card-onschedule','stat-card-defaulter','stat-card-zerodose'].forEach(function(id) {
+                var el = document.getElementById(id);
+                if (el) el.classList.remove('card-filter-active');
+            });
+            if (activeStatusFilter === null) {
+                document.getElementById('stat-card-total').classList.add('card-filter-active');
+            } else {
+                var activeId = cardMap[activeStatusFilter];
+                if (activeId) document.getElementById(activeId).classList.add('card-filter-active');
+            }
+            filterFunc();
+        }
+
+        function setR3CardFilter(status) {
+            if (activeR3StatusFilter === status || status === null) {
+                activeR3StatusFilter = null;
+            } else {
+                activeR3StatusFilter = status;
+            }
+            var cardMap = {
+                'OnSchedule':    'r3-stat-card-onschedule',
+                'Defaulter':     'r3-stat-card-defaulter',
+                'ZeroDose':      'r3-stat-card-zerodose',
+                'NotClassified': 'r3-stat-card-notclassified'
+            };
+            ['r3-stat-card-total','r3-stat-card-onschedule','r3-stat-card-defaulter','r3-stat-card-zerodose','r3-stat-card-notclassified'].forEach(function(id) {
+                var el = document.getElementById(id);
+                if (el) el.classList.remove('card-filter-active');
+            });
+            if (activeR3StatusFilter === null) {
+                document.getElementById('r3-stat-card-total').classList.add('card-filter-active');
+            } else {
+                var activeId = cardMap[activeR3StatusFilter];
+                if (activeId) document.getElementById(activeId).classList.add('card-filter-active');
+            }
+            filterFunc();
+        }
+        // ────────────────────────────────────────────────────────────────────────
 
         // Filter functionality
         var currentRound = 'Round 2';
@@ -11660,6 +11865,43 @@ var FormatOptions = [
                             if (features[i].properties['Round'] !== currentRound) {
                                 features.splice(i, 1);
                             }
+                        }
+                    }
+
+                    // Apply card status filter (layer-specific)
+                    var _layerDataVar = lyr["options"]["dataVar"];
+                    if (_layerDataVar === 'json_vaccination_individual_data' && activeStatusFilter) {
+                        for (var i = features.length - 1; i >= 0; --i) {
+                            if ((features[i].properties[activeStatusFilter] || 0) === 0) {
+                                features.splice(i, 1);
+                            }
+                        }
+                    }
+                    if (_layerDataVar === 'json_vaccination_r3_data' && activeR3StatusFilter) {
+                        for (var i = features.length - 1; i >= 0; --i) {
+                            if ((features[i].properties[activeR3StatusFilter] || 0) === 0) {
+                                features.splice(i, 1);
+                            }
+                        }
+                    }
+                    // Apply R3 vaccine filter
+                    if (_layerDataVar === 'json_vaccination_r3_data' && activeR3VaxFilter && activeR3VaxFilter.length > 0) {
+                        for (var i = features.length - 1; i >= 0; --i) {
+                            var hasAny = false;
+                            for (var v = 0; v < activeR3VaxFilter.length; v++) {
+                                if ((features[i].properties[activeR3VaxFilter[v]] || 0) > 0) { hasAny = true; break; }
+                            }
+                            if (!hasAny) features.splice(i, 1);
+                        }
+                    }
+                    // Apply vaccine filter (R2 only)
+                    if (_layerDataVar === 'json_vaccination_individual_data' && activeVaxFilter.length > 0) {
+                        for (var i = features.length - 1; i >= 0; --i) {
+                            var hasAny = false;
+                            for (var v = 0; v < activeVaxFilter.length; v++) {
+                                if ((features[i].properties[activeVaxFilter[v]] || 0) > 0) { hasAny = true; break; }
+                            }
+                            if (!hasAny) features.splice(i, 1);
                         }
                     }
 
@@ -11815,11 +12057,17 @@ var FormatOptions = [
                 return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
             }
 
+            // Percentages helper
+            function pctHtml(val, total) {
+                if (!total) return '';
+                return '<span class="stat-pct">' + Math.round(val / total * 100) + '%</span>';
+            }
+
             document.getElementById('facilities-count').textContent = features.length + ' Facilities';
             document.getElementById('sum-total').textContent = formatNum(totalChildren);
-            document.getElementById('sum-onschedule').textContent = formatNum(onSchedule);
-            document.getElementById('sum-defaulter').textContent = formatNum(defaulter);
-            document.getElementById('sum-zerodose').textContent = formatNum(zeroDose);
+            document.getElementById('sum-onschedule').innerHTML = formatNum(onSchedule) + pctHtml(onSchedule, totalChildren);
+            document.getElementById('sum-defaulter').innerHTML  = formatNum(defaulter)  + pctHtml(defaulter,  totalChildren);
+            document.getElementById('sum-zerodose').innerHTML   = formatNum(zeroDose)   + pctHtml(zeroDose,   totalChildren);
             document.getElementById('sum-age012').textContent = formatNum(age012);
             document.getElementById('sum-age1224').textContent = formatNum(age1224);
             document.getElementById('sum-age2436').textContent = formatNum(age2436);
@@ -12211,13 +12459,17 @@ var FormatOptions = [
             var v7 = bopv4 + mmr2 + dtp;
 
             function fmt(n) { return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
+            function r3Pct(val, total) {
+                if (!total) return '';
+                return '<span class="stat-pct">' + Math.round(val / total * 100) + '%</span>';
+            }
 
             document.getElementById('r3-facilities-count').textContent = features.length + ' Facilities';
             document.getElementById('r3-sum-total').textContent = fmt(totalChildren);
-            document.getElementById('r3-sum-onschedule').textContent = fmt(onSchedule);
-            document.getElementById('r3-sum-defaulter').textContent = fmt(defaulter);
-            document.getElementById('r3-sum-zerodose').textContent = fmt(zeroDose);
-            document.getElementById('r3-sum-notclassified').textContent = fmt(notClassified);
+            document.getElementById('r3-sum-onschedule').innerHTML    = fmt(onSchedule)    + r3Pct(onSchedule,    totalChildren);
+            document.getElementById('r3-sum-defaulter').innerHTML     = fmt(defaulter)     + r3Pct(defaulter,     totalChildren);
+            document.getElementById('r3-sum-zerodose').innerHTML      = fmt(zeroDose)      + r3Pct(zeroDose,      totalChildren);
+            document.getElementById('r3-sum-notclassified').innerHTML = fmt(notClassified) + r3Pct(notClassified, totalChildren);
             document.getElementById('r3-sum-age012').textContent = fmt(age012);
             document.getElementById('r3-sum-age1224').textContent = fmt(age1224);
             document.getElementById('r3-sum-age2436').textContent = fmt(age2436);
@@ -12248,6 +12500,37 @@ var FormatOptions = [
             document.getElementById('r3-sum-mmr1').textContent = fmt(mmr1);
             document.getElementById('r3-sum-mmr2').textContent = fmt(mmr2);
             document.getElementById('r3-sum-dtp').textContent = fmt(dtp);
+
+            // Vaccine status breakdown bar
+            var bar = document.getElementById('r3-vax-breakdown-bar');
+            if (bar) {
+                if (activeR3VaxFilter && activeR3VaxFilter.length > 0) {
+                    var barHtml = '';
+                    activeR3VaxFilter.forEach(function(vax) {
+                        var total = 0, d = 0, s = 0, z = 0;
+                        features.forEach(function(f) {
+                            total += (f.properties[vax]       || 0);
+                            d     += (f.properties[vax + '_D'] || 0);
+                            s     += (f.properties[vax + '_S'] || 0);
+                            z     += (f.properties[vax + '_Z'] || 0);
+                        });
+                        function p(v) { return total ? ' (' + Math.round(v/total*100) + '%)' : ''; }
+                        barHtml += '<div style="margin-bottom:3px;">' +
+                            '<strong style="color:#4338ca;">💉 ' + vax + ': ' + fmt(total) + '</strong>' +
+                            '&nbsp;&nbsp;' +
+                            '<span style="color:#d97706;">⚠️ ' + fmt(d) + p(d) + '</span>' +
+                            '&nbsp;&nbsp;' +
+                            '<span style="color:#059669;">✅ ' + fmt(s) + p(s) + '</span>' +
+                            '&nbsp;&nbsp;' +
+                            '<span style="color:#dc2626;">🔴 ' + fmt(z) + p(z) + '</span>' +
+                            '</div>';
+                    });
+                    bar.innerHTML = barHtml;
+                    bar.style.display = '';
+                } else {
+                    bar.style.display = 'none';
+                }
+            }
         }
 
         // Initialize summary card with all data on page load (use correct totals)
