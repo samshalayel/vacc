@@ -702,6 +702,26 @@ ul.photon-autocomplete {
             z-index: 1000;
         }
 
+        /* Visit-mode selection highlight */
+        .visit-detail-header {
+            cursor: pointer;
+            border-radius: 6px;
+            transition: background 0.15s;
+            padding: 2px 4px;
+            margin: -2px -4px;
+        }
+        .visit-detail-header:hover { background: #f1f5f9; }
+        .visit-detail-header.vax-sel-1 {
+            background: #dbeafe;
+            border-left: 3px solid #3b82f6;
+            padding-left: 6px;
+        }
+        .visit-detail-header.vax-sel-2 {
+            background: #fef3c7;
+            border-left: 3px solid #d97706;
+            padding-left: 6px;
+        }
+
         .leaflet-popup-content {
             margin: 0 !important;
             min-width: 280px;
@@ -1132,7 +1152,7 @@ ul.photon-autocomplete {
                         <div class="summary-section">
                             <div class="summary-section-title">Vaccination Visits with Vaccines</div>
                             <div class="visit-detail-section">
-                                <div class="visit-detail-header">
+                                <div class="visit-detail-header" data-visit="v1">
                                     <span class="visit-name"><i class="fas fa-baby"></i> Visit 1: Birth</span>
                                     <span class="visit-total" id="r3-sum-v1">0</span>
                                 </div>
@@ -1142,7 +1162,7 @@ ul.photon-autocomplete {
                                 </div>
                             </div>
                             <div class="visit-detail-section">
-                                <div class="visit-detail-header">
+                                <div class="visit-detail-header" data-visit="v2">
                                     <span class="visit-name"><i class="fas fa-syringe"></i> Visit 2: 1 Month</span>
                                     <span class="visit-total" id="r3-sum-v2">0</span>
                                 </div>
@@ -1151,7 +1171,7 @@ ul.photon-autocomplete {
                                 </div>
                             </div>
                             <div class="visit-detail-section">
-                                <div class="visit-detail-header">
+                                <div class="visit-detail-header" data-visit="v3">
                                     <span class="visit-name"><i class="fas fa-syringe"></i> Visit 3: 2 Months</span>
                                     <span class="visit-total" id="r3-sum-v3">0</span>
                                 </div>
@@ -1164,7 +1184,7 @@ ul.photon-autocomplete {
                                 </div>
                             </div>
                             <div class="visit-detail-section">
-                                <div class="visit-detail-header">
+                                <div class="visit-detail-header" data-visit="v4">
                                     <span class="visit-name"><i class="fas fa-syringe"></i> Visit 4: 4 Months</span>
                                     <span class="visit-total" id="r3-sum-v4">0</span>
                                 </div>
@@ -1176,7 +1196,7 @@ ul.photon-autocomplete {
                                 </div>
                             </div>
                             <div class="visit-detail-section">
-                                <div class="visit-detail-header">
+                                <div class="visit-detail-header" data-visit="v5">
                                     <span class="visit-name"><i class="fas fa-syringe"></i> Visit 5: 6 Months</span>
                                     <span class="visit-total" id="r3-sum-v5">0</span>
                                 </div>
@@ -1187,7 +1207,7 @@ ul.photon-autocomplete {
                                 </div>
                             </div>
                             <div class="visit-detail-section">
-                                <div class="visit-detail-header">
+                                <div class="visit-detail-header" data-visit="v6">
                                     <span class="visit-name"><i class="fas fa-syringe"></i> Visit 6: 12 Months</span>
                                     <span class="visit-total" id="r3-sum-v6">0</span>
                                 </div>
@@ -1197,7 +1217,7 @@ ul.photon-autocomplete {
                                 </div>
                             </div>
                             <div class="visit-detail-section">
-                                <div class="visit-detail-header">
+                                <div class="visit-detail-header" data-visit="v7">
                                     <span class="visit-name"><i class="fas fa-syringe"></i> Visit 7: 18 Months</span>
                                     <span class="visit-total" id="r3-sum-v7">0</span>
                                 </div>
@@ -11265,6 +11285,37 @@ var FormatOptions = [
         bounds_group.addLayer(layer_vaccination_data);
         map.addLayer(layer_vaccination_data);
 
+        // ── R3 Vaccine-visit mode (must be declared before layer_vaccination_r3_data) ──
+        var R3_VISITS = {
+            'v1': { short: 'V1', keys: ['BCG','HepB'] },
+            'v2': { short: 'V2', keys: ['IPV1'] },
+            'v3': { short: 'V3', keys: ['IPV2','bOPV1','Rota1','PCV1','Penta1'] },
+            'v4': { short: 'V4', keys: ['bOPV2','Rota2','PCV2','Penta2'] },
+            'v5': { short: 'V5', keys: ['bOPV3','Rota3','Penta3'] },
+            'v6': { short: 'V6', keys: ['PCV3','MMR1'] },
+            'v7': { short: 'V7', keys: ['bOPV4','bOPV5','MMR2','DTP'] },
+        };
+        var r3VaxSelection = []; // [{visitId, short, keys}] up to 2
+        var currentR3Features = [];
+
+        function getVaxCount(feature, keys) {
+            return keys.reduce(function(s, k) { return s + (feature.properties[k] || 0); }, 0);
+        }
+
+        function getCircleLabel(feature) {
+            if (r3VaxSelection.length === 0) {
+                var d = feature.properties['Defaulter'] || 0;
+                return d > 0 ? String(d) : null;
+            }
+            var parts = [];
+            r3VaxSelection.forEach(function(sel) {
+                var c = getVaxCount(feature, sel.keys);
+                if (c > 0) parts.push(sel.short + ':' + c);
+            });
+            return parts.length > 0 ? parts.join(' / ') : null;
+        }
+        // ────────────────────────────────────────────────────────────────────────
+
         // ── Round 3 Vaccination Stats Layer ─────────────────────────────────────
         function style_vaccination_r3_0(feature) {
             var colors = {
@@ -11340,10 +11391,10 @@ var FormatOptions = [
                 '</div></div></div>';
             layer.bindPopup(popupContent, { maxHeight: 450, maxWidth: 320 });
 
-            // Show Defaulter count inside the circle
-            var defaulterCount = feature.properties['Defaulter'] || 0;
-            if (defaulterCount > 0) {
-                layer.bindTooltip(String(defaulterCount), {
+            // Show label inside the circle (defaulter count or vaccine count)
+            var label = getCircleLabel(feature);
+            if (label) {
+                layer.bindTooltip(label, {
                     permanent: true,
                     direction: 'center',
                     className: 'r3-defaulter-label'
@@ -11380,12 +11431,26 @@ var FormatOptions = [
             disableClusteringAtZoom: 14,
             iconCreateFunction: function(cluster) {
                 var markers = cluster.getAllChildMarkers();
-                var totalDef = 0;
-                markers.forEach(function(m) {
-                    totalDef += (m.feature && m.feature.properties['Defaulter']) || 0;
-                });
                 var count = cluster.getChildCount();
                 var size = count <= 5 ? 36 : count <= 15 ? 44 : count <= 30 ? 52 : 60;
+                var bottomHtml = '';
+                if (r3VaxSelection.length === 0) {
+                    var totalDef = 0;
+                    markers.forEach(function(m) {
+                        totalDef += (m.feature && m.feature.properties['Defaulter']) || 0;
+                    });
+                    if (totalDef > 0) bottomHtml = '<span style="font-size:10px;opacity:0.9;">⚠️' + totalDef + '</span>';
+                } else {
+                    var parts = [];
+                    r3VaxSelection.forEach(function(sel) {
+                        var total = 0;
+                        markers.forEach(function(m) {
+                            if (m.feature) total += getVaxCount(m.feature, sel.keys);
+                        });
+                        parts.push(sel.short + ':' + total);
+                    });
+                    bottomHtml = '<span style="font-size:10px;opacity:0.9;">💉' + parts.join(' ') + '</span>';
+                }
                 return L.divIcon({
                     html: '<div style="width:' + size + 'px;height:' + size + 'px;' +
                           'background:rgba(217,119,6,0.85);border-radius:50%;' +
@@ -11393,7 +11458,7 @@ var FormatOptions = [
                           'display:flex;flex-direction:column;align-items:center;justify-content:center;' +
                           'color:#fff;font-weight:700;line-height:1.1;">' +
                           '<span style="font-size:' + (size > 44 ? 13 : 11) + 'px;">' + count + ' 🏥</span>' +
-                          (totalDef > 0 ? '<span style="font-size:10px;opacity:0.9;">⚠️' + totalDef + '</span>' : '') +
+                          bottomHtml +
                           '</div>',
                     className: '',
                     iconSize: [size, size],
@@ -11631,6 +11696,7 @@ var FormatOptions = [
                                 return !(c[0] === 0 && c[1] === 0) && f.properties['Round'] === 'Round 3';
                             });
                             var r3FiltersApplied = features.length < allR3Valid.length;
+                            currentR3Features = features;
                             updateR3SummaryCard(features, !r3FiltersApplied);
                             updateR3Cluster(features);
                             document.getElementById('r3-facilities-count').textContent = features.length + ' Facilities';
@@ -12023,6 +12089,53 @@ var FormatOptions = [
             if (!r3WasOnMap) map.removeLayer(layer_vaccination_r3_data);
         }
 
+        // ── Visit-mode click handlers ────────────────────────────────────────────
+        document.querySelectorAll('.visit-detail-header[data-visit]').forEach(function(el) {
+            el.addEventListener('click', function(e) {
+                var visitId = el.getAttribute('data-visit');
+                var visit = R3_VISITS[visitId];
+                if (!visit) return;
+                var sel = { visitId: visitId, short: visit.short, keys: visit.keys };
+
+                if (e.ctrlKey) {
+                    // Ctrl+click: toggle second selection
+                    var idx = -1;
+                    r3VaxSelection.forEach(function(s, i) { if (s.visitId === visitId) idx = i; });
+                    if (idx >= 0) {
+                        r3VaxSelection.splice(idx, 1);
+                    } else if (r3VaxSelection.length < 2) {
+                        r3VaxSelection.push(sel);
+                    } else {
+                        r3VaxSelection[1] = sel; // replace second
+                    }
+                } else {
+                    // Normal click: select/deselect first
+                    if (r3VaxSelection.length === 1 && r3VaxSelection[0].visitId === visitId) {
+                        r3VaxSelection = []; // deselect
+                    } else {
+                        r3VaxSelection = [sel];
+                    }
+                }
+
+                // Update visual indicators on headers
+                document.querySelectorAll('.visit-detail-header[data-visit]').forEach(function(h) {
+                    h.classList.remove('vax-sel-1', 'vax-sel-2');
+                });
+                if (r3VaxSelection[0]) {
+                    var h1 = document.querySelector('.visit-detail-header[data-visit="' + r3VaxSelection[0].visitId + '"]');
+                    if (h1) h1.classList.add('vax-sel-1');
+                }
+                if (r3VaxSelection[1]) {
+                    var h2 = document.querySelector('.visit-detail-header[data-visit="' + r3VaxSelection[1].visitId + '"]');
+                    if (h2) h2.classList.add('vax-sel-2');
+                }
+
+                // Rebuild cluster display with new labels
+                if (currentR3Features.length > 0) updateR3Cluster(currentR3Features);
+            });
+        });
+        // ────────────────────────────────────────────────────────────────────────
+
         function clearSelect(selectId) {
             var el = document.getElementById(selectId);
             if (!el) return;
@@ -12139,6 +12252,17 @@ var FormatOptions = [
 
         // Initialize summary card with all data on page load (use correct totals)
         updateSummaryCard(json_vaccination_individual_data.features, true);
+
+        // Initialize R3 card with correct totals (card is hidden until Round 3 selected)
+        (function() {
+            var validR3 = json_vaccination_r3_data.features.filter(function(f) {
+                var c = f.geometry.coordinates;
+                return !(c[0] === 0 && c[1] === 0);
+            });
+            currentR3Features = validR3;
+            updateR3SummaryCard(validR3, true);
+            document.getElementById('r3-facilities-count').textContent = validR3.length + ' Facilities';
+        })();
 
         // === Menu Toggle (Filters Collapse) ===
         document.getElementById('menu-toggle-btn').addEventListener('click', function() {
