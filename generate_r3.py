@@ -120,17 +120,17 @@ for _, row in phc_updated.iterrows():
 # Vaccine dose ID -> vaccine name mapping (per specification)
 # Plus extras found in data: 22=DT1 (-> DTP), 27=bOPV5
 VACCINE_MAP = {
-    1: 'BCG', 2: 'HepB', 3: 'IPV1', 4: 'IPV2', 5: 'bOPV1',
-    6: 'bOPV2', 7: 'bOPV3', 8: 'bOPV4', 9: 'bOPV5', 10: 'Rota1',
-    11: 'Rota2', 12: 'Rota3', 13: 'Penta1', 14: 'Penta2', 15: 'Penta3',
-    16: 'PCV1', 17: 'PCV2', 18: 'PCV3', 19: 'MMR1', 20: 'MMR2', 21: 'DTP',
-    22: 'DTP', 27: 'bOPV5'
+    1: 'BCG',    2: 'HepB',   3: 'IPV1',   4: 'IPV2',   5: 'bOPV1',
+    6: 'bOPV2',  7: 'bOPV3',  8: 'bOPV4',  9: 'Rota1',  10: 'Rota2',
+    11: 'Rota3', 12: 'Penta1',13: 'Penta2', 14: 'Penta3',15: 'PCV1',
+    16: 'PCV2',  17: 'PCV3',  18: 'MMR1',  19: 'MMR2',  20: 'DTP',
+    21: 'DT',    22: 'DT',    23: 'DT',    27: 'bOPV5',  28: 'Td'
 }
 VACCINE_NAMES = ['BCG', 'HepB', 'IPV1', 'IPV2', 'bOPV1', 'bOPV2', 'bOPV3', 'bOPV4', 'bOPV5',
                  'Rota1', 'Rota2', 'Rota3', 'Penta1', 'Penta2', 'Penta3',
                  'PCV1', 'PCV2', 'PCV3', 'MMR1', 'MMR2', 'DTP']
 AGE_MAP = {1: '0-12', 2: '12-24', 3: '24+'}
-STATUS_MAP = {1: 'ZeroDose', 2: 'OnSchedule', 3: 'Defaulter'}
+STATUS_MAP = {1: 'ZeroDose', 2: 'Defaulter', 3: 'OnSchedule'}
 
 # Aggregate per facility
 fac_children = defaultdict(set)
@@ -138,6 +138,7 @@ fac_children_age = defaultdict(dict)
 fac_children_status = defaultdict(dict)
 fac_vaccines = defaultdict(lambda: defaultdict(int))
 fac_vaccinations = defaultdict(int)
+fac_person_vaccines = defaultdict(lambda: defaultdict(set))  # phc_id -> person_id -> {vax_names}
 
 for _, row in r3_df.iterrows():
     phc_id = row['PHC_ENTRY_ID']
@@ -161,11 +162,13 @@ for _, row in r3_df.iterrows():
         vname = VACCINE_MAP.get(int(vaccine_id))
         if vname:
             fac_vaccines[phc_id][vname] += 1
+            fac_person_vaccines[phc_id][person_id].add(vname)
 
 # Build GeoJSON features and summary
 features = []
 summary = {
     'TotalChildren': 0, 'OnSchedule': 0, 'Defaulter': 0, 'ZeroDose': 0,
+    'NotClassified': 0,
     'Age012': 0, 'Age1224': 0, 'Age24plus': 0,
     'vaccines': {v: 0 for v in VACCINE_NAMES}
 }
@@ -234,7 +237,32 @@ for phc_id in sorted(fac_children.keys()):
     for p, s in fac_children_status[phc_id].items():
         status_counts[STATUS_MAP.get(s, 'OnSchedule')] += 1
 
+    classified = status_counts.get('OnSchedule', 0) + status_counts.get('Defaulter', 0) + status_counts.get('ZeroDose', 0)
+    not_classified = total_children - classified
+
     vaccine_counts = {v: fac_vaccines[phc_id].get(v, 0) for v in VACCINE_NAMES}
+
+    # Per-status vaccine breakdown: {Vax}_D=Defaulter, {Vax}_S=OnSchedule, {Vax}_Z=ZeroDose, {Vax}_NC=NotClassified
+    vax_by_status = {}
+    person_status = fac_children_status[phc_id]
+    person_vaxes  = fac_person_vaccines[phc_id]
+    for vname in VACCINE_NAMES:
+        d = s = z = nc = 0
+        for p, vaxes in person_vaxes.items():
+            if vname in vaxes:
+                st = person_status.get(p)
+                if st is None:
+                    nc += 1
+                else:
+                    sname = STATUS_MAP.get(st)
+                    if sname == 'Defaulter':    d += 1
+                    elif sname == 'OnSchedule': s += 1
+                    elif sname == 'ZeroDose':   z += 1
+                    else:                       nc += 1
+        vax_by_status[vname + '_D']  = d
+        vax_by_status[vname + '_S']  = s
+        vax_by_status[vname + '_Z']  = z
+        vax_by_status[vname + '_NC'] = nc
 
     props = {
         'Health Facility': info['en'],
@@ -249,9 +277,11 @@ for phc_id in sorted(fac_children.keys()):
         'OnSchedule': status_counts.get('OnSchedule', 0),
         'Defaulter': status_counts.get('Defaulter', 0),
         'ZeroDose': status_counts.get('ZeroDose', 0),
+        'NotClassified': not_classified,
         'Round': 'Round 3'
     }
     props.update(vaccine_counts)
+    props.update(vax_by_status)
 
     features.append({
         'type': 'Feature',
@@ -263,6 +293,7 @@ for phc_id in sorted(fac_children.keys()):
     summary['OnSchedule'] += status_counts.get('OnSchedule', 0)
     summary['Defaulter'] += status_counts.get('Defaulter', 0)
     summary['ZeroDose'] += status_counts.get('ZeroDose', 0)
+    summary['NotClassified'] += not_classified
     summary['Age012'] += age_counts.get('0-12', 0)
     summary['Age1224'] += age_counts.get('12-24', 0)
     summary['Age24plus'] += age_counts.get('24+', 0)
